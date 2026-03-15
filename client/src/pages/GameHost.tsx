@@ -10,6 +10,7 @@ import QuestionView from '../components/QuestionView/QuestionView';
 import Scoreboard from '../components/Scoreboard/Scoreboard';
 import TourIndicator from '../components/TourIndicator/TourIndicator';
 
+
 export default function GameHost() {
   const { code } = useParams<{ code: string }>();
   const navigate = useNavigate();
@@ -149,7 +150,7 @@ export default function GameHost() {
             {screen === 'board' && (
               <motion.div key="board"
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }} className="flex-1">
+                exit={{ opacity: 0 }} className="flex-1 flex flex-col">
                 <GameBoard
                   themes={boardThemes}
                   answeredQuestions={answeredQuestions}

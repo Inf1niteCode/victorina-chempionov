@@ -1,7 +1,71 @@
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, useInView } from "framer-motion";
 import { useAuthStore } from "../store/authStore";
+
+const TYPEWRITER_PHRASES = [
+  "которая запомнится",
+  "для настоящих знатоков",
+  "объединяет компанию",
+  "где побеждает умнейший",
+  "которую ждут снова",
+  "без скуки и пауз",
+  "с кнопкой-жмалкой",
+  "для любого повода",
+  "заводит с первого вопроса",
+  "которую не забудут",
+];
+
+function TypewriterText() {
+  const [phraseIndex, setPhraseIndex] = useState(0);
+  const [displayed, setDisplayed] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    const phrase = TYPEWRITER_PHRASES[phraseIndex];
+
+    if (!deleting && displayed.length < phrase.length) {
+      const t = setTimeout(() => setDisplayed(phrase.slice(0, displayed.length + 1)), 60);
+      return () => clearTimeout(t);
+    }
+
+    if (!deleting && displayed.length === phrase.length) {
+      const t = setTimeout(() => setDeleting(true), 2200);
+      return () => clearTimeout(t);
+    }
+
+    if (deleting && displayed.length > 0) {
+      const t = setTimeout(() => setDisplayed(displayed.slice(0, -1)), 35);
+      return () => clearTimeout(t);
+    }
+
+    if (deleting && displayed.length === 0) {
+      setDeleting(false);
+      setPhraseIndex((i) => (i + 1) % TYPEWRITER_PHRASES.length);
+    }
+  }, [displayed, deleting, phraseIndex]);
+
+  return (
+    <span
+      style={{
+        fontSize: "clamp(1.6rem, 4.5vw, 3.2rem)",
+        background: "linear-gradient(135deg, var(--accent-gold) 0%, #f97316 100%)",
+        WebkitBackgroundClip: "text",
+        WebkitTextFillColor: "transparent",
+      }}
+    >
+      {displayed}
+      <span
+        style={{
+          WebkitTextFillColor: "var(--accent-gold)",
+          opacity: 1,
+          animation: "blink 1s step-start infinite",
+        }}
+      >|</span>
+      <style>{`@keyframes blink { 50% { opacity: 0 } }`}</style>
+    </span>
+  );
+}
 
 function FadeIn({
   children,
@@ -86,7 +150,7 @@ const HOW_IT_WORKS = [
     step: "2",
     icon: "🎮",
     title: "Создайте игру",
-    desc: "Выберите темы, число туров и таймер",
+    desc: "Выберите темы и число туров",
   },
   {
     step: "3",
@@ -304,25 +368,15 @@ export default function Landing() {
           {/* Заголовок */}
           <h1
             style={{
-              fontSize: "clamp(2.5rem, 7vw, 5rem)",
               fontWeight: 900,
               lineHeight: 1.1,
               letterSpacing: "-0.03em",
               marginBottom: 24,
             }}
           >
-            <span style={{ color: "var(--text-primary)" }}>Викторина,</span>
+            <span style={{ color: "var(--text-primary)", fontSize: "clamp(1.6rem, 4.5vw, 3.2rem)" }}>Викторина,</span>
             <br />
-            <span
-              style={{
-                background:
-                  "linear-gradient(135deg, var(--accent-gold) 0%, #f97316 100%)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-              }}
-            >
-              которая запомнится
-            </span>
+            <TypewriterText />
           </h1>
 
           <p
@@ -915,11 +969,7 @@ export default function Landing() {
             },
             {
               q: "Сколько всего тем и вопросов?",
-              a: "130 тем в 19 категориях: История, Наука, Культура, Спорт, География, Технологии, Видеоигры и другие. Итого 650 вопросов.",
-            },
-            {
-              q: "Сколько стоят дополнительные темы?",
-              a: "100 ₽ за одну тему или 80 ₽/тема при покупке набором из 3–5 тем (скидка 20%). 63 темы полностью бесплатны.",
+              a: "Более 130 тем в 19 категориях: История, Наука, Культура, Спорт, География, Технологии, Видеоигры и другие",
             },
             {
               q: "Работает ли без интернета?",
@@ -1075,6 +1125,17 @@ export default function Landing() {
               Войти в игру
             </Link>
             <span>© {new Date().getFullYear()}</span>
+            <span style={{ color: "var(--border)" }}>·</span>
+            <span>Разработка и поддержка{" "}
+              <a
+                href="https://t.me/Inf1niteCode"
+                target="_blank"
+                rel="noreferrer"
+                style={{ color: "var(--accent-blue)" }}
+              >
+                @Inf1niteCode
+              </a>
+            </span>
           </div>
         </div>
       </footer>

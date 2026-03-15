@@ -80,18 +80,10 @@ export default function GameSetup() {
     } catch (err: unknown) {
       const msg =
         err &&
-<<<<<<< Updated upstream
-        typeof err === "object" &&
-        "response" in err &&
-        (err as { response?: { data?: { error?: string } } }).response?.data
-          ?.error;
-      setError(String(msg || "Ошибка создания игры"));
-=======
         typeof err === 'object' &&
         'response' in err &&
         (err as { response?: { data?: { error?: string } } }).response?.data?.error;
-      setError(String (msg || 'Ошибка создания игры'));
->>>>>>> Stashed changes
+      setError(String(msg || 'Ошибка создания игры'));
       setIsCreating(false);
     }
   };

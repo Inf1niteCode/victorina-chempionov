@@ -54,6 +54,7 @@ export default function ThemePicker({
   const MAX = 5;
 
   const [filter, setFilter] = useState<FilterMode>('all');
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [favorites, setFavorites] = useState<Set<string>>(() => {
     try {
       const raw = localStorage.getItem(LS_KEY);
@@ -217,19 +218,45 @@ export default function ThemePicker({
       )}
 
       {/* Категории */}
-      {grouped.map(({ cat, themes: catThemes }) => (
+      {grouped.map(({ cat, themes: catThemes }) => {
+        const isCollapsed = collapsed.has(cat);
+        const selectedInCat = catThemes.filter((t) => selected.includes(t.id)).length;
+        return (
         <div key={cat}>
-          <div className="flex items-center gap-2 mb-2">
+          <button
+            onClick={() => setCollapsed((prev) => {
+              const next = new Set(prev);
+              next.has(cat) ? next.delete(cat) : next.add(cat);
+              return next;
+            })}
+            className="w-full flex items-center gap-2 mb-2 py-1.5 px-2 rounded-xl transition-all hover:opacity-80"
+            style={{ background: isCollapsed ? 'var(--bg-surface)' : 'transparent' }}
+          >
             <span className="text-sm">{CATEGORY_ICONS[cat]}</span>
-            <span
-              className="text-xs font-semibold uppercase tracking-wide"
-              style={{ color: 'var(--text-muted)' }}
-            >
+            <span className="text-xs font-semibold uppercase tracking-wide flex-1 text-left" style={{ color: 'var(--text-muted)' }}>
               {cat}
             </span>
-          </div>
+            {selectedInCat > 0 && (
+              <span className="text-xs px-1.5 py-0.5 rounded-full font-bold"
+                style={{ background: 'rgba(59,130,246,0.15)', color: 'var(--accent-blue)', border: '1px solid rgba(59,130,246,0.3)' }}>
+                {selectedInCat}
+              </span>
+            )}
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              {isCollapsed ? '▶' : '▼'}
+            </span>
+          </button>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <AnimatePresence initial={false}>
+          {!isCollapsed && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            style={{ overflow: 'hidden' }}
+          >
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-1">
             {catThemes.map((theme) => {
               const isSelected = selected.includes(theme.id);
               const isUsedElsewhere = usedInOtherTours.includes(theme.id);
@@ -334,8 +361,12 @@ export default function ThemePicker({
               );
             })}
           </div>
+          </motion.div>
+          )}
+          </AnimatePresence>
         </div>
-      ))}
+        );
+      })}
 
       {/* Подсказка если макс */}
       <AnimatePresence>

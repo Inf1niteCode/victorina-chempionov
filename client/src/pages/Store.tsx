@@ -191,8 +191,12 @@ export default function Store() {
         style={{ background: 'var(--bg-card)', borderBottom: '1px solid var(--border)' }}>
         <div className="flex items-center gap-3">
           <button onClick={() => navigate('/dashboard')}
-            className="text-sm transition-opacity hover:opacity-70"
-            style={{ color: 'var(--text-muted)' }}>
+            className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
+            style={{
+              background: 'var(--bg-surface)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border)',
+            }}>
             ← Назад
           </button>
           <div>
@@ -313,10 +317,10 @@ export default function Store() {
         {tab === 'themes' && (
           <>
             {/* Фильтр по категориям */}
-            <div className="flex gap-2 overflow-x-auto pb-1">
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setActiveCategory(null)}
-                className="px-4 py-2 rounded-xl text-sm font-medium flex-shrink-0 transition-all"
+                className="px-3 py-1.5 rounded-xl text-sm font-medium transition-all"
                 style={{
                   background: !activeCategory ? 'var(--accent-blue)' : 'var(--bg-surface)',
                   color: !activeCategory ? '#fff' : 'var(--text-muted)',
@@ -329,7 +333,7 @@ export default function Store() {
                 return (
                   <button key={cat}
                     onClick={() => setActiveCategory(activeCategory === cat ? null : cat)}
-                    className="px-4 py-2 rounded-xl text-sm font-medium flex-shrink-0 transition-all flex items-center gap-1.5"
+                    className="px-3 py-1.5 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5"
                     style={{
                       background: activeCategory === cat ? meta.bg : 'var(--bg-surface)',
                       color: activeCategory === cat ? meta.color : 'var(--text-muted)',
@@ -342,106 +346,66 @@ export default function Store() {
               })}
             </div>
 
-            {/* Темы по категориям */}
-            {grouped.map(({ cat, meta, themes: catThemes }) => (
-              <motion.section key={cat} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-lg">{meta.icon}</span>
-                  <h2 className="font-bold text-sm uppercase tracking-wide" style={{ color: meta.color }}>
-                    {cat}
-                  </h2>
-                  <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
-                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                    {catThemes.filter((t) => t.isPurchased).length}/{catThemes.length}
-                  </span>
-                </div>
+            {/* Сетка карточек */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+              {grouped.flatMap(({ cat, meta, themes: catThemes }) =>
+                catThemes.map((theme, i) => {
+                  const inCart = cartThemeIds.has(theme.id);
+                  const isExpanded = expandedTheme === theme.id;
+                  return (
+                    <motion.div
+                      key={theme.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.03 }}
+                      className="rounded-2xl overflow-hidden flex flex-col"
+                      style={{
+                        background: 'var(--bg-card)',
+                        border: `1px solid ${theme.isPurchased && !theme.isFree ? meta.color + '40' : inCart ? 'rgba(59,130,246,0.4)' : 'var(--border)'}`,
+                      }}
+                    >
+                      {/* Шапка карточки с цветом категории */}
+                      <div className="px-3 pt-4 pb-3 flex flex-col items-center text-center"
+                        style={{ background: meta.bg, borderBottom: `1px solid ${meta.color}20` }}>
+                        <span className="text-3xl mb-1">{meta.icon}</span>
+                        <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: meta.color }}>
+                          {cat}
+                        </span>
+                      </div>
 
-                <div className="space-y-2">
-                  {catThemes.map((theme, i) => {
-                    const isExpanded = expandedTheme === theme.id;
+                      {/* Тело карточки */}
+                      <div className="flex flex-col flex-1 p-3 gap-2">
+                        <p className="font-semibold text-sm leading-tight" style={{ color: 'var(--text-primary)' }}>
+                          {theme.name}
+                        </p>
+                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                          5 вопросов · 100–500 очков
+                        </p>
 
-                    return (
-                      <motion.div key={theme.id}
-                        initial={{ opacity: 0, x: -8 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: i * 0.04 }}
-                        className="rounded-2xl overflow-hidden"
-                        style={{
-                          background: 'var(--bg-card)',
-                          border: `1px solid ${theme.isPurchased ? meta.color + '30' : 'var(--border)'}`,
-                        }}>
+                        {/* Бейдж статуса */}
+                        {theme.isFree ? (
+                          <span className="text-xs px-2 py-0.5 rounded-full self-start"
+                            style={{ background: 'rgba(16,185,129,0.15)', color: 'var(--accent-green)', border: '1px solid rgba(16,185,129,0.3)' }}>
+                            Бесплатно
+                          </span>
+                        ) : theme.isPurchased ? (
+                          <span className="text-xs px-2 py-0.5 rounded-full self-start"
+                            style={{ background: meta.bg, color: meta.color, border: `1px solid ${meta.color}40` }}>
+                            ✓ Куплено
+                          </span>
+                        ) : (
+                          <span className="text-sm font-bold" style={{ color: 'var(--accent-gold)' }}>
+                            100 ₽
+                          </span>
+                        )}
 
-                        <div className="flex items-center gap-3 px-4 py-3">
-                          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-base"
-                            style={{
-                              background: theme.isPurchased
-                                ? (theme.isFree ? 'rgba(16,185,129,0.15)' : meta.bg)
-                                : 'var(--bg-surface)',
-                              border: `1px solid ${theme.isPurchased
-                                ? (theme.isFree ? 'rgba(16,185,129,0.3)' : meta.color + '40')
-                                : 'var(--border)'}`,
-                            }}>
-                            {theme.isFree ? '🎁' : theme.isPurchased ? '✅' : '🔒'}
-                          </div>
-
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>
-                                {theme.name}
-                              </span>
-                              {theme.isFree && (
-                                <span className="text-xs px-1.5 py-0.5 rounded-full"
-                                  style={{ background: 'rgba(16,185,129,0.15)', color: 'var(--accent-green)', border: '1px solid rgba(16,185,129,0.3)' }}>
-                                  Бесплатно
-                                </span>
-                              )}
-                              {!theme.isFree && theme.isPurchased && (
-                                <span className="text-xs px-1.5 py-0.5 rounded-full"
-                                  style={{ background: meta.bg, color: meta.color, border: `1px solid ${meta.color}40` }}>
-                                  Куплено
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                              5 вопросов · 100–500 очков
-                            </p>
-                          </div>
-
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            <button
-                              onClick={() => setExpandedTheme(isExpanded ? null : theme.id)}
-                              className="text-xs px-3 py-1.5 rounded-lg transition-all"
-                              style={{
-                                background: 'var(--bg-surface)',
-                                color: 'var(--text-muted)',
-                                border: '1px solid var(--border)',
-                              }}>
-                              {isExpanded ? '▲' : '▼'}
-                            </button>
-
-                            {!theme.isPurchased && !theme.isFree ? (
-                              <button
-                                onClick={() => toggleThemeCart(theme.id)}
-                                className="px-3 py-1.5 rounded-xl text-sm font-bold transition-all"
-                                style={{
-                                  background: cartThemeIds.has(theme.id)
-                                    ? 'rgba(59,130,246,0.15)'
-                                    : 'var(--bg-surface)',
-                                  color: cartThemeIds.has(theme.id)
-                                    ? 'var(--accent-blue)'
-                                    : 'var(--text-muted)',
-                                  border: `1px solid ${cartThemeIds.has(theme.id) ? 'rgba(59,130,246,0.4)' : 'var(--border)'}`,
-                                }}>
-                                {cartThemeIds.has(theme.id) ? '✓ В корзине' : '+ В корзину'}
-                              </button>
-                            ) : theme.isPurchased && !theme.isFree ? (
-                              <span className="text-xs px-3 py-1.5 rounded-xl"
-                                style={{ background: 'var(--bg-surface)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
-                                ✓ Есть
-                              </span>
-                            ) : null}
-                          </div>
-                        </div>
+                        {/* Кнопка показа вопросов */}
+                        <button
+                          onClick={() => setExpandedTheme(isExpanded ? null : theme.id)}
+                          className="text-xs mt-auto transition-all"
+                          style={{ color: 'var(--text-muted)' }}>
+                          {isExpanded ? '▲ Скрыть вопросы' : '▼ Показать вопросы'}
+                        </button>
 
                         <AnimatePresence>
                           {isExpanded && (
@@ -450,46 +414,43 @@ export default function Store() {
                               animate={{ height: 'auto', opacity: 1 }}
                               exit={{ height: 0, opacity: 0 }}
                               transition={{ duration: 0.2 }}
-                              style={{ borderTop: '1px solid var(--border)', overflow: 'hidden' }}>
-                              <div className="px-4 py-3 space-y-2">
-                                <p className="text-xs font-semibold uppercase tracking-wide mb-2"
-                                  style={{ color: 'var(--text-muted)' }}>
-                                  Вопросы
-                                </p>
+                              style={{ overflow: 'hidden' }}>
+                              <div className="space-y-1.5 pt-2" style={{ borderTop: '1px solid var(--border)' }}>
                                 {theme.questions.map((q) => (
-                                  <div key={q.id} className="flex items-start gap-3">
-                                    <span className="text-xs font-bold px-2 py-0.5 rounded-lg flex-shrink-0"
-                                      style={{
-                                        background: 'var(--bg-surface)',
-                                        color: 'var(--accent-gold)',
-                                        border: '1px solid var(--border)',
-                                        minWidth: 40,
-                                        textAlign: 'center',
-                                      }}>
+                                  <div key={q.id} className="flex items-start gap-2">
+                                    <span className="text-xs font-bold px-1.5 py-0.5 rounded flex-shrink-0"
+                                      style={{ background: 'var(--bg-surface)', color: 'var(--accent-gold)', border: '1px solid var(--border)', minWidth: 36, textAlign: 'center' }}>
                                       {q.points}
                                     </span>
-                                    <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                                      {theme.isPurchased || theme.isFree
-                                        ? q.text
-                                        : '••••••••••••••••••'}
+                                    <span className="text-xs leading-tight" style={{ color: 'var(--text-muted)' }}>
+                                      {theme.isPurchased || theme.isFree ? q.text : '••••••••••••'}
                                     </span>
                                   </div>
                                 ))}
-                                {!theme.isPurchased && !theme.isFree && (
-                                  <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
-                                    Купите тему, чтобы увидеть все вопросы
-                                  </p>
-                                )}
                               </div>
                             </motion.div>
                           )}
                         </AnimatePresence>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              </motion.section>
-            ))}
+
+                        {/* Кнопка в корзину */}
+                        {!theme.isFree && !theme.isPurchased && (
+                          <button
+                            onClick={() => toggleThemeCart(theme.id)}
+                            className="w-full py-2 rounded-xl text-sm font-bold transition-all mt-1"
+                            style={{
+                              background: inCart ? 'rgba(59,130,246,0.15)' : 'linear-gradient(135deg, var(--accent-gold) 0%, #f97316 100%)',
+                              color: inCart ? 'var(--accent-blue)' : '#07090F',
+                              border: inCart ? '1px solid rgba(59,130,246,0.4)' : 'none',
+                            }}>
+                            {inCart ? '✓ В корзине' : '+ В корзину'}
+                          </button>
+                        )}
+                      </div>
+                    </motion.div>
+                  );
+                })
+              )}
+            </div>
           </>
         )}
 
