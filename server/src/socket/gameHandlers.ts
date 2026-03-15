@@ -52,8 +52,9 @@ export function registerGameHandlers(io: Server, socket: Socket): void {
           return;
         }
 
-        // Сбрасываем buzz Set
+        // Сбрасываем buzz и штрафы предыдущего вопроса
         room.buzzed = new Set();
+        room.penalizedPlayers = new Set();
 
         // Сохраняем активный вопрос
         room.activeQuestion = {
@@ -184,6 +185,11 @@ export function registerGameHandlers(io: Server, socket: Socket): void {
       if (room.hostSocketId !== socket.id) return;
 
       try {
+        // Защита от двойного списания: один игрок — один штраф за вопрос
+        const penaltyKey = `${playerId}:${questionId}`;
+        if (room.penalizedPlayers.has(penaltyKey)) return;
+        room.penalizedPlayers.add(penaltyKey);
+
         const question = await prisma.question.findUnique({
           where: { id: questionId },
           select: { points: true },
@@ -192,7 +198,7 @@ export function registerGameHandlers(io: Server, socket: Socket): void {
 
         // Вычитаем очки
         const player = room.players.get(playerId);
-        if (player) player.score = Math.max(0, player.score - question.points);
+        if (player) player.score -= question.points;
 
         await prisma.player.update({
           where: { id: playerId },

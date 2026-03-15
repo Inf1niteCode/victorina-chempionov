@@ -31,7 +31,7 @@ export default function GameDisplay() {
     setGameCode(code);
     connectSocket();
     const socket = getSocket();
-    socket.emit('room:getPlayers', { code });
+    socket.emit('room:joinDisplay', { code });
     socket.on('room:error', ({ message }) => setError(message));
     return () => { socket.off('room:error'); };
   }, [code]);

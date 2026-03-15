@@ -78,6 +78,7 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
           answeredQuestions: new Set(),
           activeQuestion: null,
           buzzed: new Set(),
+          penalizedPlayers: new Set(),
           status: 'LOBBY',
         };
 
@@ -197,5 +198,87 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
     const room = getRoom(data.code);
     if (!room) return;
     socket.emit('room:playerList', { players: getPlayerList(room) });
+  });
+
+  // ────────────────────────────────────────────
+  // room:joinDisplay — дисплей подключается к комнате
+  // ────────────────────────────────────────────
+
+  socket.on('room:joinDisplay', async (data: { code: string }) => {
+    const { code } = data;
+    const room = getRoom(code);
+
+    if (!room) {
+      socket.emit('room:error', { message: 'Комната не найдена' });
+      return;
+    }
+
+    // Присоединяем дисплей к общей комнате чтобы получать все broadcast-события
+    socket.join(code);
+    registerSocket(socket.id, code);
+
+    // Отправляем текущий список игроков
+    socket.emit('room:playerList', { players: getPlayerList(room) });
+
+    // Если игра уже активна — синхронизируем состояние
+    if (room.status === 'ACTIVE') {
+      try {
+        const game = await prisma.game.findUnique({
+          where: { code },
+          include: {
+            tours: {
+              where: { tourNumber: room.currentTour },
+              include: {
+                themes: {
+                  orderBy: { position: 'asc' },
+                  include: {
+                    theme: {
+                      include: { questions: { orderBy: { points: 'asc' } } },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        if (game && game.tours[0]) {
+          const tour = game.tours[0];
+          const themes = tour.themes.map((tt) => ({
+            themeId: tt.theme.id,
+            themeName: tt.theme.name,
+            position: tt.position,
+            cells: tt.theme.questions.map((q) => ({
+              questionId: q.id,
+              points: q.points,
+              answered: room.answeredQuestions.has(q.id),
+            })),
+          }));
+
+          socket.emit('tour:start', {
+            tourNumber: room.currentTour,
+            totalTours: room.totalTours,
+            themes,
+          });
+        }
+
+        // Если прямо сейчас идёт вопрос — отправляем его (без ответа)
+        if (room.activeQuestion) {
+          const aq = room.activeQuestion;
+          socket.emit('question:open', {
+            questionId: aq.questionId,
+            text: aq.text,
+            answer: '',
+            points: aq.points,
+            themeName: aq.themeName,
+            timeLimit: aq.timeLimit,
+          });
+        }
+      } catch (err) {
+        console.error('[room:joinDisplay]', err);
+      }
+    }
+
+    console.log(`[room:joinDisplay] Display joined room ${code}`);
   });
 }

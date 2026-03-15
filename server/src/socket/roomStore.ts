@@ -34,6 +34,7 @@ export interface RoomState {
   answeredQuestions: Set<string>;     // questionId
   activeQuestion: ActiveQuestion | null;
   buzzed: Set<string>;
+  penalizedPlayers: Set<string>; // playerId:questionId — защита от двойного списания
   status: 'LOBBY' | 'ACTIVE' | 'FINISHED';
 }
 
