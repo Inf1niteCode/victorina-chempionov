@@ -187,7 +187,7 @@ export default function Store() {
     <div className="min-h-screen" style={{ background: 'var(--bg-deep)' }}>
 
       {/* ── Шапка ── */}
-      <header className="sticky top-0 z-20 px-6 py-4 flex items-center justify-between"
+      <header className="sticky top-0 z-20 px-4 py-3 sm:px-6 sm:py-4 flex items-center justify-between"
         style={{ background: 'var(--bg-card)', borderBottom: '1px solid var(--border)' }}>
         <div className="flex items-center gap-3">
           <button onClick={() => navigate('/dashboard')}
@@ -221,7 +221,7 @@ export default function Store() {
         </div>
       </header>
 
-      <div className="max-w-3xl mx-auto px-6 py-6 space-y-6">
+      <div className="max-w-3xl mx-auto px-4 py-6 sm:px-6 space-y-6">
 
         {/* ── Уведомления ── */}
         <AnimatePresence>

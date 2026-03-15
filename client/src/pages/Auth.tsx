@@ -93,7 +93,7 @@ export default function Auth() {
 
         {/* Карточка */}
         <div
-          className="rounded-2xl p-8 shadow-2xl"
+          className="rounded-2xl p-6 sm:p-8 shadow-2xl"
           style={{
             background: 'var(--bg-card)',
             border: '1px solid var(--border)',

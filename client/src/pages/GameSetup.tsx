@@ -110,7 +110,7 @@ export default function GameSetup() {
     <div className="min-h-screen" style={{ background: "var(--bg-deep)" }}>
       {/* ── Шапка ── */}
       <header
-        className="px-6 py-4 flex items-center gap-4 sticky top-0 z-10"
+        className="px-4 py-3 sm:px-6 sm:py-4 flex items-center gap-4 sticky top-0 z-10"
         style={{
           background: "var(--bg-card)",
           borderBottom: "1px solid var(--border)",
@@ -135,12 +135,12 @@ export default function GameSetup() {
         </h1>
       </header>
 
-      <div className="max-w-3xl mx-auto px-6 py-8 space-y-8">
+      <div className="max-w-3xl mx-auto px-4 py-6 sm:px-6 sm:py-8 space-y-6 sm:space-y-8">
         {/* ── Шаг 1: Число туров ── */}
         <motion.section
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl p-6"
+          className="rounded-2xl p-4 sm:p-6"
           style={{
             background: "var(--bg-card)",
             border: "1px solid var(--border)",
@@ -163,7 +163,7 @@ export default function GameSetup() {
                   setTotalTours(n);
                   setActiveTourTab(0);
                 }}
-                className="flex-1 py-4 rounded-xl font-bold text-2xl transition-all"
+                className="flex-1 py-3 sm:py-4 rounded-xl font-bold text-xl sm:text-2xl transition-all"
                 style={{
                   background:
                     totalTours === n
@@ -187,7 +187,7 @@ export default function GameSetup() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05 }}
-          className="rounded-2xl p-6"
+          className="rounded-2xl p-4 sm:p-6"
           style={{
             background: "var(--bg-card)",
             border: "1px solid var(--border)",
@@ -293,7 +293,7 @@ export default function GameSetup() {
           }}
         >
           <div
-            className="px-6 py-4"
+            className="px-4 py-4 sm:px-6"
             style={{ borderBottom: "1px solid var(--border)" }}
           >
             <h2
@@ -354,7 +354,7 @@ export default function GameSetup() {
             </div>
           )}
 
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTourTab}
@@ -410,7 +410,7 @@ export default function GameSetup() {
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
-              className="rounded-xl px-5 py-4 mb-4 text-sm"
+              className="rounded-xl px-4 py-3 sm:px-5 sm:py-4 mb-4 text-sm"
               style={{
                 background: "rgba(16,185,129,0.08)",
                 border: "1px solid rgba(16,185,129,0.25)",
@@ -442,7 +442,7 @@ export default function GameSetup() {
           <button
             onClick={handleCreate}
             disabled={!allToursReady || isCreating}
-            className="w-full py-5 rounded-2xl font-bold text-xl transition-all"
+            className="w-full py-4 sm:py-5 rounded-2xl font-bold text-base sm:text-xl transition-all"
             style={{
               background:
                 allToursReady && !isCreating

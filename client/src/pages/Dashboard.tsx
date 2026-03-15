@@ -83,7 +83,7 @@ export default function Dashboard() {
 
       {/* ── Шапка ── */}
       <header
-        className="px-6 py-4 flex items-center justify-between sticky top-0 z-10"
+        className="px-4 py-3 sm:px-6 sm:py-4 flex items-center justify-between sticky top-0 z-10"
         style={{ background: 'var(--bg-card)', borderBottom: '1px solid var(--border)' }}
       >
         <div className="flex items-center gap-3">
@@ -92,7 +92,7 @@ export default function Dashboard() {
             Викторина Чемпионов
           </span>
         </div>
-        <nav className="flex items-center gap-4">
+        <nav className="flex items-center gap-2 sm:gap-4">
           {user?.isAdmin && (
             <Link
               to="/admin"
@@ -131,7 +131,7 @@ export default function Dashboard() {
         </nav>
       </header>
 
-      <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
+      <div className="max-w-5xl mx-auto px-4 py-6 sm:px-6 sm:py-8 space-y-6 sm:space-y-8">
 
         {/* ── Приветствие ── */}
         <motion.div
@@ -181,7 +181,7 @@ export default function Dashboard() {
         >
           <button
             onClick={() => navigate('/game/setup')}
-            className="w-full py-5 rounded-2xl font-bold text-xl transition-all"
+            className="w-full py-4 sm:py-5 rounded-2xl font-bold text-lg sm:text-xl transition-all"
             style={{
               background: 'linear-gradient(135deg, var(--accent-gold) 0%, #f97316 100%)',
               color: '#07090F',
@@ -241,10 +241,10 @@ export default function Dashboard() {
                     style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
                   >
                     {/* Верхняя строка */}
-                    <div className="p-5 flex items-center gap-4">
+                    <div className="p-4 sm:p-5 flex items-center gap-3 sm:gap-4 flex-wrap">
                       {/* Код */}
                       <div
-                        className="text-xl font-bold tracking-widest w-24 text-center flex-shrink-0"
+                        className="text-base sm:text-xl font-bold tracking-widest w-16 sm:w-24 text-center flex-shrink-0"
                         style={{ color: 'var(--accent-gold)' }}
                       >
                         {game.code}

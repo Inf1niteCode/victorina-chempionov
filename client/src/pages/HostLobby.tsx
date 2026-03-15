@@ -113,7 +113,7 @@ export default function HostLobby() {
     >
       {/* Шапка */}
       <div
-        className="px-6 py-4 flex items-center justify-between"
+        className="px-4 py-3 sm:px-6 sm:py-4 flex items-center justify-between"
         style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-card)' }}
       >
         <div className="flex items-center gap-3">
@@ -144,7 +144,7 @@ export default function HostLobby() {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="max-w-5xl mx-auto px-4 py-6 sm:px-6 sm:py-8 grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
 
         {/* ── ЛЕВАЯ КОЛОНКА: Код + QR ── */}
         <div className="space-y-6">
@@ -160,7 +160,7 @@ export default function HostLobby() {
               Код игры — скажите игрокам
             </p>
             <div
-              className="text-6xl font-bold tracking-widest my-3 cursor-pointer select-all"
+              className="text-4xl sm:text-6xl font-bold tracking-widest my-3 cursor-pointer select-all"
               style={{ color: 'var(--accent-gold)', letterSpacing: '0.15em' }}
               onClick={copyCode}
               title="Нажмите, чтобы скопировать"
@@ -392,7 +392,7 @@ export default function HostLobby() {
             transition={{ delay: 0.25 }}
             onClick={handleStart}
             disabled={isStarting || players.length === 0}
-            className="w-full py-5 rounded-2xl font-bold text-xl transition-all"
+            className="w-full py-4 sm:py-5 rounded-2xl font-bold text-lg sm:text-xl transition-all"
             style={{
               background:
                 players.length === 0 || isStarting
