@@ -54,7 +54,7 @@ function setTokenCookie(res: Response, token: string): void {
     maxAge: 7 * 24 * 60 * 60 * 1000,
     path: '/',
   });
-}
+};
 
 // ────────────────────────────────────────────
 // POST /api/auth/register

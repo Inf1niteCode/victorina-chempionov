@@ -1,8 +1,5 @@
 import { Player, BoardTheme } from './game';
 
-// ──────────────────────────────────────────
-// EVENTS: CLIENT → SERVER
-// ──────────────────────────────────────────
 export interface ClientToServerEvents {
   'room:create': (data: RoomCreatePayload) => void;
   'room:join': (data: RoomJoinPayload) => void;
@@ -16,15 +13,16 @@ export interface ClientToServerEvents {
   'timer:reset': (data: { code: string }) => void;
   'tour:next': (data: { code: string }) => void;
   'game:end': (data: { code: string }) => void;
+  'room:getPlayers': (data: { code: string }) => void;
+  'tour:rejoin': (data: { code: string }) => void;
 }
 
-// ──────────────────────────────────────────
-// EVENTS: SERVER → CLIENT
-// ──────────────────────────────────────────
 export interface ServerToClientEvents {
   'room:playerList': (data: { players: Player[] }) => void;
   'room:playerJoined': (data: { playerName: string }) => void;
   'room:error': (data: { message: string }) => void;
+  'room:joined': (data: { playerId: string; playerName: string; gameStatus: string; currentTour: number; totalTours: number }) => void;
+  'room:hostDisconnected': (data: { message: string }) => void;
   'game:start': (data: { code: string }) => void;
   'tour:start': (data: TourStartPayload) => void;
   'tour:end': (data: TourEndPayload) => void;
@@ -40,13 +38,11 @@ export interface ServerToClientEvents {
   'score:update': (data: { players: Player[] }) => void;
 }
 
-// ──────────────────────────────────────────
-// PAYLOAD TYPES
-// ──────────────────────────────────────────
 export interface RoomCreatePayload {
   code: string;
+  gameId: string;
   timerSecs: number;
-  tours: TourSetup[];
+  totalTours: number;
 }
 
 export interface TourSetup {
