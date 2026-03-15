@@ -5,6 +5,7 @@ export interface AuthUser {
   email: string;
   name: string;
   createdAt: string;
+  isAdmin?: boolean;
   purchases?: { themeId: string; createdAt: string }[];
   _count?: { games: number };
 }

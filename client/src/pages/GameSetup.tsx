@@ -109,8 +109,12 @@ export default function GameSetup() {
       >
         <button
           onClick={() => navigate('/dashboard')}
-          className="text-sm transition-opacity hover:opacity-70"
-          style={{ color: 'var(--text-muted)' }}
+          className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-xl transition-all hover:opacity-85"
+          style={{
+            background: 'var(--bg-surface)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border)',
+          }}
         >
           ← Назад
         </button>

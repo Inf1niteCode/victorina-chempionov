@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { prisma } from '../prisma/client';
 import { signToken } from '../services/jwtService';
-import { requireAuth } from '../middleware/auth';
+import { requireAuth, isAdminEmail } from '../middleware/auth';
 import { validate } from '../middleware/validate';
 
 const router = Router();
@@ -163,7 +163,7 @@ router.get('/me', requireAuth, async (req: Request, res: Response) => {
       return;
     }
 
-    res.json({ user });
+    res.json({ user: { ...user, isAdmin: isAdminEmail(user.email) } });
   } catch (err) {
     console.error('[auth/me]', err);
     res.status(500).json({ error: 'Внутренняя ошибка сервера' });

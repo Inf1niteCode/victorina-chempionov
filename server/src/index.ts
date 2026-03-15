@@ -10,6 +10,7 @@ import authRouter from './routes/auth';
 import gameRouter from './routes/game';
 import themesRouter from './routes/themes';
 import paymentsRouter from './routes/payments';
+import adminRouter from './routes/admin';
 import { initSocket } from './socket';
 
 const app = express();
@@ -51,6 +52,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/game', gameRouter);
 app.use('/api/themes', themesRouter);
 app.use('/api/payments', paymentsRouter);
+app.use('/api/admin', adminRouter);
 
 // Health check
 app.get('/api/health', (_req, res) => {

@@ -35,8 +35,8 @@ const FEATURES = [
   },
   {
     icon: '🎯',
-    title: '125 вопросов в базе',
-    desc: '25 тем в 5 категориях: История, Наука, Культура, Спорт, География. Лёгкие за 100 — сложные за 500 очков.',
+    title: '650 вопросов в базе',
+    desc: '130 тем в 19 категориях: История, Наука, Культура, Видеоигры, Музыка, Кино и ещё 13. Лёгкие за 100 — сложные за 500 очков.',
   },
   {
     icon: '📱',
@@ -50,18 +50,6 @@ const FEATURES = [
   },
 ];
 
-const FREE_THEMES = [
-  { cat: '⚔️ История', name: 'Древний мир' },
-  { cat: '⚔️ История', name: 'Великие войны' },
-  { cat: '🔬 Наука', name: 'Физика' },
-  { cat: '🔬 Наука', name: 'Космос' },
-  { cat: '🎭 Культура', name: 'Кино' },
-  { cat: '🎭 Культура', name: 'Литература' },
-  { cat: '⚽ Спорт', name: 'Футбол' },
-  { cat: '⚽ Спорт', name: 'Олимпийские игры' },
-  { cat: '🌍 География', name: 'Столицы мира' },
-  { cat: '🌍 География', name: 'Животный мир' },
-];
 
 const HOW_IT_WORKS = [
   { step: '1', icon: '📝', title: 'Зарегистрируйтесь', desc: 'Создайте аккаунт ведущего за 30 секунд' },
@@ -81,40 +69,36 @@ export default function Landing() {
       {/* ════════════════════════════════════════
           НАВИГАЦИЯ
       ════════════════════════════════════════ */}
-      <nav className="sticky top-0 z-50 px-6 py-4 flex items-center justify-between"
+      <nav className="sticky top-0 z-50 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3"
         style={{ background: 'rgba(7,9,15,0.85)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <div className="flex items-center gap-2">
-          <span className="text-xl">🏆</span>
-          <span className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>
-            Викторина Чемпионов
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-xl flex-shrink-0">🏆</span>
+          <span className="font-bold text-sm sm:text-lg truncate" style={{ color: 'var(--text-primary)' }}>
+            <span className="hidden xs:inline">Викторина </span>Чемпионов
           </span>
         </div>
-        <div className="flex items-center gap-3">
-          <a href="#pricing" className="text-sm hidden sm:block"
-            style={{ color: 'var(--text-muted)' }}
-            onMouseEnter={(e) => ((e.target as HTMLElement).style.color = 'var(--text-primary)')}
-            onMouseLeave={(e) => ((e.target as HTMLElement).style.color = 'var(--text-muted)')}>
-            Цены
-          </a>
+        <div className="flex items-center gap-2 flex-shrink-0">
           {user ? (
             <button onClick={() => navigate('/dashboard')}
-              className="px-4 py-2 rounded-xl text-sm font-medium transition-all"
+              className="px-3 sm:px-4 py-2 rounded-xl text-sm font-medium transition-all"
               style={{ background: 'var(--accent-gold)', color: '#07090F' }}>
-              Личный кабинет
+              <span className="hidden sm:inline">Личный кабинет</span>
+              <span className="sm:hidden">Кабинет</span>
             </button>
           ) : (
             <>
               <Link to="/auth"
-                className="text-sm px-4 py-2 rounded-xl transition-all"
+                className="text-sm px-3 sm:px-4 py-2 rounded-xl transition-all hidden sm:block"
                 style={{ color: 'var(--text-muted)', border: '1px solid var(--border)' }}
                 onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.borderColor = 'var(--accent-blue)')}
                 onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.borderColor = 'var(--border)')}>
                 Войти
               </Link>
               <Link to="/auth"
-                className="text-sm px-4 py-2 rounded-xl font-medium transition-all"
+                className="text-sm px-3 sm:px-4 py-2 rounded-xl font-medium transition-all"
                 style={{ background: 'var(--accent-gold)', color: '#07090F' }}>
-                Начать бесплатно
+                <span className="hidden sm:inline">Начать бесплатно</span>
+                <span className="sm:hidden">Начать</span>
               </Link>
             </>
           )}
@@ -124,7 +108,7 @@ export default function Landing() {
       {/* ════════════════════════════════════════
           HERO
       ════════════════════════════════════════ */}
-      <section className="relative flex flex-col items-center justify-center text-center px-6 py-24 min-h-screen">
+      <section className="relative flex flex-col items-center justify-center text-center px-4 sm:px-6 py-16 sm:py-24 min-h-screen">
         {/* Фоны */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div style={{
@@ -193,9 +177,9 @@ export default function Landing() {
           </p>
 
           {/* CTA */}
-          <div className="flex items-center justify-center gap-4 flex-wrap">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
             <Link to="/auth"
-              className="px-8 py-4 rounded-2xl font-bold text-lg transition-all inline-flex items-center gap-2"
+              className="w-full sm:w-auto px-6 sm:px-8 py-4 rounded-2xl font-bold text-base sm:text-lg transition-all inline-flex items-center justify-center gap-2"
               style={{
                 background: 'linear-gradient(135deg, var(--accent-gold) 0%, #f97316 100%)',
                 color: '#07090F',
@@ -206,7 +190,7 @@ export default function Landing() {
               Создать игру бесплатно →
             </Link>
             <Link to="/join"
-              className="px-8 py-4 rounded-2xl font-bold text-lg transition-all"
+              className="w-full sm:w-auto px-6 sm:px-8 py-4 rounded-2xl font-bold text-base sm:text-lg transition-all text-center"
               style={{
                 background: 'transparent',
                 color: 'var(--text-primary)',
@@ -219,7 +203,7 @@ export default function Landing() {
           </div>
 
           <p className="mt-6 text-sm" style={{ color: 'var(--text-muted)' }}>
-            10 тем бесплатно · Без лимита игроков · Работает в браузере
+            130 тем · 19 категорий · Без лимита игроков
           </p>
         </motion.div>
 
@@ -239,20 +223,20 @@ export default function Landing() {
       {/* ════════════════════════════════════════
           КАК ЭТО РАБОТАЕТ
       ════════════════════════════════════════ */}
-      <section className="py-24 px-6">
+      <section className="py-16 sm:py-24 px-4 sm:px-6">
         <div className="max-w-5xl mx-auto">
           <FadeIn>
-            <div className="text-center mb-16">
-              <h2 style={{ fontSize: 'clamp(1.75rem, 4vw, 2.5rem)', fontWeight: 800, marginBottom: 12 }}>
+            <div className="text-center mb-10 sm:mb-16">
+              <h2 style={{ fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', fontWeight: 800, marginBottom: 12 }}>
                 Как это работает
               </h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>
+              <p style={{ color: 'var(--text-muted)', fontSize: '1rem' }}>
                 От регистрации до первого вопроса — 5 минут
               </p>
             </div>
           </FadeIn>
 
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             {HOW_IT_WORKS.map((step, i) => (
               <FadeIn key={step.step} delay={i * 0.08}>
                 <div className="relative">
@@ -289,20 +273,20 @@ export default function Landing() {
       {/* ════════════════════════════════════════
           ФИЧИ
       ════════════════════════════════════════ */}
-      <section className="py-24 px-6" style={{ borderTop: '1px solid var(--border)' }}>
+      <section className="py-16 sm:py-24 px-4 sm:px-6" style={{ borderTop: '1px solid var(--border)' }}>
         <div className="max-w-5xl mx-auto">
           <FadeIn>
-            <div className="text-center mb-16">
-              <h2 style={{ fontSize: 'clamp(1.75rem, 4vw, 2.5rem)', fontWeight: 800, marginBottom: 12 }}>
+            <div className="text-center mb-10 sm:mb-16">
+              <h2 style={{ fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', fontWeight: 800, marginBottom: 12 }}>
                 Всё для идеальной викторины
               </h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>
+              <p style={{ color: 'var(--text-muted)', fontSize: '1rem' }}>
                 Продуманные детали, которые делают игру незабываемой
               </p>
             </div>
           </FadeIn>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
             {FEATURES.map((f, i) => (
               <FadeIn key={f.title} delay={i * 0.07}>
                 <div className="rounded-2xl p-6 h-full"
@@ -324,20 +308,20 @@ export default function Landing() {
       {/* ════════════════════════════════════════
           ТРИ ЭКРАНА — схема
       ════════════════════════════════════════ */}
-      <section className="py-24 px-6" style={{ borderTop: '1px solid var(--border)' }}>
+      <section className="py-16 sm:py-24 px-4 sm:px-6" style={{ borderTop: '1px solid var(--border)' }}>
         <div className="max-w-5xl mx-auto">
           <FadeIn>
-            <div className="text-center mb-16">
-              <h2 style={{ fontSize: 'clamp(1.75rem, 4vw, 2.5rem)', fontWeight: 800, marginBottom: 12 }}>
+            <div className="text-center mb-10 sm:mb-16">
+              <h2 style={{ fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', fontWeight: 800, marginBottom: 12 }}>
                 Три экрана — одна игра
               </h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>
+              <p style={{ color: 'var(--text-muted)', fontSize: '1rem' }}>
                 Каждый видит именно то, что ему нужно
               </p>
             </div>
           </FadeIn>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {[
               {
                 icon: '📺', url: '/display?code=KVIZ42',
@@ -394,168 +378,14 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ════════════════════════════════════════
-          ЦЕНЫ
-      ════════════════════════════════════════ */}
-      <section id="pricing" className="py-24 px-6" style={{ borderTop: '1px solid var(--border)' }}>
-        <div className="max-w-4xl mx-auto">
-          <FadeIn>
-            <div className="text-center mb-16">
-              <h2 style={{ fontSize: 'clamp(1.75rem, 4vw, 2.5rem)', fontWeight: 800, marginBottom: 12 }}>
-                Честные цены
-              </h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>
-                Платите только за темы, которые нужны
-              </p>
-            </div>
-          </FadeIn>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-            {/* Бесплатно */}
-            <FadeIn delay={0.05}>
-              <div className="rounded-3xl p-8 flex flex-col h-full"
-                style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-                <div className="mb-6">
-                  <div className="text-sm font-semibold uppercase tracking-wide mb-2"
-                    style={{ color: 'var(--text-muted)' }}>
-                    Всегда бесплатно
-                  </div>
-                  <div style={{ fontSize: '3rem', fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1 }}>
-                    0 ₽
-                  </div>
-                  <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)' }}>
-                    Навсегда, без ограничений по времени
-                  </p>
-                </div>
-
-                <ul className="space-y-3 flex-1 mb-8">
-                  {[
-                    '10 тем из 5 категорий',
-                    'Неограниченное число игр',
-                    'Неограниченное число игроков',
-                    'До 3 туров в одной игре',
-                    'QR-код и код для входа',
-                    'Проекторный режим',
-                    'Серверный таймер',
-                  ].map((item) => (
-                    <li key={item} className="flex items-center gap-2 text-sm"
-                      style={{ color: 'var(--text-primary)' }}>
-                      <span style={{ color: 'var(--accent-green)', fontSize: '1rem' }}>✓</span>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-
-                <div className="rounded-2xl p-4 mb-6"
-                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
-                  <p className="text-xs font-medium mb-3" style={{ color: 'var(--text-muted)' }}>
-                    10 бесплатных тем:
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {FREE_THEMES.map((t) => (
-                      <span key={t.name} className="text-xs px-2 py-1 rounded-lg"
-                        style={{ background: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
-                        {t.name}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <Link to="/auth"
-                  className="block w-full py-3.5 rounded-xl text-center font-bold transition-all"
-                  style={{
-                    background: 'var(--bg-surface)',
-                    color: 'var(--text-primary)',
-                    border: '1px solid var(--border)',
-                  }}>
-                  Начать бесплатно
-                </Link>
-              </div>
-            </FadeIn>
-
-            {/* Платные темы */}
-            <FadeIn delay={0.1}>
-              <div className="rounded-3xl p-8 flex flex-col h-full relative overflow-hidden"
-                style={{
-                  background: 'var(--bg-card)',
-                  border: '2px solid rgba(245,158,11,0.4)',
-                  boxShadow: '0 0 48px rgba(245,158,11,0.1)',
-                }}>
-                {/* Популярное */}
-                <div className="absolute top-0 right-6 px-3 py-1 rounded-b-xl text-xs font-bold"
-                  style={{ background: 'var(--accent-gold)', color: '#07090F' }}>
-                  Расширение
-                </div>
-
-                <div className="mb-6">
-                  <div className="text-sm font-semibold uppercase tracking-wide mb-2"
-                    style={{ color: 'var(--accent-gold)' }}>
-                    Платные темы
-                  </div>
-                  <div className="flex items-baseline gap-2">
-                    <span style={{ fontSize: '3rem', fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1 }}>
-                      100 ₽
-                    </span>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>/ тема</span>
-                  </div>
-                  <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)' }}>
-                    Разовая покупка · Навсегда в аккаунте
-                  </p>
-                </div>
-
-                <ul className="space-y-3 flex-1 mb-8">
-                  {[
-                    '15 дополнительных тем',
-                    'Покупайте только нужные',
-                    'Средневековье, Биология, Музыка...',
-                    'Теннис, Хоккей, Живопись...',
-                    'Страны и флаги, Климат...',
-                    'Тема навсегда в вашем аккаунте',
-                    'Оплата через Stripe (карты РФ)',
-                  ].map((item) => (
-                    <li key={item} className="flex items-center gap-2 text-sm"
-                      style={{ color: 'var(--text-primary)' }}>
-                      <span style={{ color: 'var(--accent-gold)', fontSize: '1rem' }}>✓</span>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-
-                <div className="rounded-2xl p-4 mb-6"
-                  style={{ background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.2)' }}>
-                  <p className="text-xs font-medium mb-1" style={{ color: 'var(--accent-gold)' }}>
-                    Все 15 тем = 1 500 ₽
-                  </p>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                    125 вопросов для 75 раундов или 3 полных игры
-                  </p>
-                </div>
-
-                <Link to="/store"
-                  className="block w-full py-3.5 rounded-xl text-center font-bold transition-all"
-                  style={{
-                    background: 'linear-gradient(135deg, var(--accent-gold) 0%, #f97316 100%)',
-                    color: '#07090F',
-                    boxShadow: '0 4px 20px rgba(245,158,11,0.3)',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.filter = 'brightness(1.08)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.filter = '')}>
-                  Открыть магазин тем
-                </Link>
-              </div>
-            </FadeIn>
-          </div>
-        </div>
-      </section>
 
       {/* ════════════════════════════════════════
           FAQ
       ════════════════════════════════════════ */}
-      <section className="py-24 px-6" style={{ borderTop: '1px solid var(--border)' }}>
+      <section className="py-16 sm:py-24 px-4 sm:px-6" style={{ borderTop: '1px solid var(--border)' }}>
         <div className="max-w-2xl mx-auto">
           <FadeIn>
-            <h2 className="text-center font-bold mb-12"
+            <h2 className="text-center font-bold mb-8 sm:mb-12"
               style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)' }}>
               Частые вопросы
             </h2>
@@ -565,7 +395,7 @@ export default function Landing() {
             { q: 'Сколько игроков может участвовать?', a: 'Нет ограничений. Платформа работает с любым числом игроков — хоть 3, хоть 30.' },
             { q: 'Нужно ли скачивать приложение?', a: 'Нет. Игроки входят через браузер на телефоне по QR-коду или 6-значному коду. Никаких установок.' },
             { q: 'Как работает кнопка-жмалка?', a: 'Сервер фиксирует время нажатия с точностью до миллисекунды. Кто нажал первым — тот отвечает, остальным приходит блокировка.' },
-            { q: 'Можно ли вернуть деньги за тему?', a: 'Темы — цифровой контент, который открывается сразу после оплаты. Возврат не предусмотрен согласно условиям использования.' },
+            { q: 'Сколько всего тем и вопросов?', a: '130 тем в 19 категориях: История, Наука, Культура, Спорт, География, Технологии, Видеоигры, Мифология, Еда, Музыка, Кино, Путешествия и другие. Итого 650 вопросов.' },
             { q: 'Работает ли без интернета?', a: 'Нет, для синхронизации трёх экранов в реальном времени нужно подключение к интернету.' },
           ].map((faq, i) => (
             <FadeIn key={faq.q} delay={i * 0.05}>
@@ -594,18 +424,18 @@ export default function Landing() {
       {/* ════════════════════════════════════════
           CTA ФИНАЛ
       ════════════════════════════════════════ */}
-      <section className="py-24 px-6" style={{ borderTop: '1px solid var(--border)' }}>
+      <section className="py-16 sm:py-24 px-4 sm:px-6" style={{ borderTop: '1px solid var(--border)' }}>
         <div className="max-w-2xl mx-auto text-center">
           <FadeIn>
-            <div className="text-6xl mb-6">🏆</div>
+            <div className="text-5xl sm:text-6xl mb-5 sm:mb-6">🏆</div>
             <h2 style={{ fontSize: 'clamp(1.75rem, 4vw, 2.5rem)', fontWeight: 900, marginBottom: 16 }}>
               Готовы провести игру?
             </h2>
             <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: 40 }}>
-              Регистрация занимает 30 секунд. Первые 10 тем — навсегда бесплатно.
+              Регистрация занимает 30 секунд. 130 тем в 19 категориях.
             </p>
             <Link to="/auth"
-              className="inline-flex items-center gap-2 px-10 py-5 rounded-2xl font-bold text-xl transition-all"
+              className="inline-flex items-center gap-2 px-7 sm:px-10 py-4 sm:py-5 rounded-2xl font-bold text-lg sm:text-xl transition-all"
               style={{
                 background: 'linear-gradient(135deg, var(--accent-gold) 0%, #f97316 100%)',
                 color: '#07090F',
@@ -620,15 +450,15 @@ export default function Landing() {
       </section>
 
       {/* ── Футер ── */}
-      <footer className="px-6 py-8" style={{ borderTop: '1px solid var(--border)' }}>
-        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+      <footer className="px-4 sm:px-6 py-6 sm:py-8" style={{ borderTop: '1px solid var(--border)' }}>
+        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
           <div className="flex items-center gap-2">
             <span>🏆</span>
             <span className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>
               Викторина Чемпионов
             </span>
           </div>
-          <div className="flex items-center gap-6 text-xs" style={{ color: 'var(--text-muted)' }}>
+          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-xs" style={{ color: 'var(--text-muted)' }}>
             <Link to="/auth" style={{ color: 'var(--text-muted)' }}>Войти</Link>
             <Link to="/store" style={{ color: 'var(--text-muted)' }}>Магазин</Link>
             <Link to="/join" style={{ color: 'var(--text-muted)' }}>Войти в игру</Link>

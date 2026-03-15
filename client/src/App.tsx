@@ -12,6 +12,7 @@ import GameHost from './pages/GameHost';
 import GamePlayer from './pages/GamePlayer';
 import Store from './pages/Store';
 import Landing from './pages/Landing';
+import Admin from './pages/Admin';
 
 export default function App() {
   const { setUser } = useAuthStore();
@@ -40,6 +41,7 @@ export default function App() {
         <Route path="/game/setup" element={<ProtectedRoute><GameSetup /></ProtectedRoute>} />
         <Route path="/host/lobby/:code" element={<ProtectedRoute><HostLobby /></ProtectedRoute>} />
         <Route path="/host/game/:code" element={<ProtectedRoute><GameHost /></ProtectedRoute>} />
+        <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
 
         {/* 404 */}
         <Route

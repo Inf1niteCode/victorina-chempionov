@@ -20,6 +20,9 @@ export default function HostLobby() {
   const [totalTours, setTotalTours] = useState(1);
   const [isStarting, setIsStarting] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState('');
 
   const displayUrl = `${window.location.origin}/display?code=${code}`;
   const joinUrl = `${window.location.origin}/join/${code}`;
@@ -72,6 +75,28 @@ export default function HostLobby() {
     navigate(`/host/game/${code}`);
   }, [code, players.length, navigate]);
 
+  // ── Отмена игры ─────────────────────────────
+  const handleCancel = async () => {
+    if (!code || isCancelling) return;
+    setIsCancelling(true);
+    setCancelError('');
+    try {
+      const res = await fetch(`/api/game/${code}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Ошибка отмены');
+      }
+      navigate('/dashboard');
+    } catch (err: unknown) {
+      setCancelError(err instanceof Error ? err.message : 'Не удалось отменить игру');
+      setIsCancelling(false);
+      setShowCancelConfirm(false);
+    }
+  };
+
   // ── Копировать код ──────────────────────────
   const copyCode = () => {
     navigator.clipboard.writeText(code || '');
@@ -102,11 +127,20 @@ export default function HostLobby() {
             </div>
           </div>
         </div>
-        <div
-          className="px-3 py-1 rounded-full text-xs font-medium"
-          style={{ background: 'rgba(245,158,11,0.15)', color: 'var(--accent-gold)' }}
-        >
-          Лобби
+        <div className="flex items-center gap-3">
+          <div
+            className="px-3 py-1 rounded-full text-xs font-medium"
+            style={{ background: 'rgba(245,158,11,0.15)', color: 'var(--accent-gold)' }}
+          >
+            Лобби
+          </div>
+          <button
+            onClick={() => setShowCancelConfirm(true)}
+            className="px-3 py-1 rounded-full text-xs font-medium transition-all hover:opacity-80"
+            style={{ background: 'rgba(239,68,68,0.12)', color: 'var(--accent-red)', border: '1px solid rgba(239,68,68,0.25)' }}
+          >
+            Отменить игру
+          </button>
         </div>
       </div>
 
@@ -162,7 +196,7 @@ export default function HostLobby() {
             </div>
           </motion.div>
 
-          {/* QR-код для Display */}
+          {/* QR-код для игроков */}
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -173,14 +207,14 @@ export default function HostLobby() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <p className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>
-                  📺 Экран для проектора
+                  QR для игроков
                 </p>
                 <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                  Откройте на большом экране
+                  Отсканируйте, чтобы войти в игру
                 </p>
               </div>
               <a
-                href={displayUrl}
+                href={joinUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="text-xs px-3 py-1.5 rounded-lg transition-all"
@@ -198,7 +232,7 @@ export default function HostLobby() {
             <div className="flex justify-center">
               <div className="p-3 rounded-xl bg-white inline-block">
                 <QRCodeSVG
-                  value={displayUrl}
+                  value={joinUrl}
                   size={160}
                   bgColor="#ffffff"
                   fgColor="#07090F"
@@ -395,8 +429,91 @@ export default function HostLobby() {
               После старта новые игроки не смогут присоединиться
             </p>
           )}
+
+          {/* Ошибка отмены */}
+          <AnimatePresence>
+            {cancelError && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="rounded-xl px-4 py-3 text-sm"
+                style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--accent-red)' }}
+              >
+                {cancelError}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
+
+      {/* ── Модальный диалог подтверждения отмены ── */}
+      <AnimatePresence>
+        {showCancelConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center px-4"
+            style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+            onClick={() => !isCancelling && setShowCancelConfirm(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.92, opacity: 0, y: 12 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.92, opacity: 0, y: 12 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              className="rounded-3xl p-6 w-full max-w-sm"
+              style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="text-center mb-5">
+                <div className="text-4xl mb-3">🗑️</div>
+                <h2 className="font-bold text-lg mb-1" style={{ color: 'var(--text-primary)' }}>
+                  Отменить игру?
+                </h2>
+                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                  Игра <strong style={{ color: 'var(--accent-gold)' }}>{code}</strong> будет удалена.
+                  {players.length > 0 && (
+                    <> Подключённые игроки ({players.length}) будут отключены.</>
+                  )}
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowCancelConfirm(false)}
+                  disabled={isCancelling}
+                  className="flex-1 py-3 rounded-2xl text-sm font-semibold transition-all"
+                  style={{ background: 'var(--bg-surface)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+                >
+                  Назад
+                </button>
+                <button
+                  onClick={handleCancel}
+                  disabled={isCancelling}
+                  className="flex-1 py-3 rounded-2xl text-sm font-bold transition-all"
+                  style={{
+                    background: isCancelling ? 'var(--bg-surface)' : 'rgba(239,68,68,0.9)',
+                    color: isCancelling ? 'var(--text-muted)' : '#fff',
+                    cursor: isCancelling ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  {isCancelling ? (
+                    <span className="flex items-center gap-2 justify-center">
+                      <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                      </svg>
+                      Удаляем...
+                    </span>
+                  ) : 'Да, отменить'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

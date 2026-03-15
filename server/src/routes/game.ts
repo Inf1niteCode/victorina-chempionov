@@ -61,6 +61,10 @@ router.get('/my', requireAuth, async (req: Request, res: Response) => {
         id: true, code: true, status: true,
         totalTours: true, timerSecs: true, createdAt: true,
         _count: { select: { players: true, rounds: true } },
+        players: {
+          orderBy: { score: 'desc' },
+          select: { id: true, name: true, score: true },
+        },
       },
     });
     res.json({ games });
@@ -160,6 +164,46 @@ router.post('/create', requireAuth, validate(createGameSchema), async (req: Requ
   } catch (err) {
     console.error('[game/create]', err);
     res.status(500).json({ error: 'Ошибка создания игры' });
+  }
+});
+
+// ────────────────────────────────────────────
+// DELETE /api/game/:code — отмена игры в лобби
+// ────────────────────────────────────────────
+
+router.delete('/:code', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { code } = req.params;
+    const hostId = req.user!.userId;
+
+    const game = await prisma.game.findUnique({ where: { code: code.toUpperCase() } });
+
+    if (!game) {
+      res.status(404).json({ error: 'Игра не найдена' });
+      return;
+    }
+    if (game.hostId !== hostId) {
+      res.status(403).json({ error: 'Нет доступа' });
+      return;
+    }
+    if (game.status === 'ACTIVE') {
+      res.status(400).json({ error: 'Нельзя удалить активную игру' });
+      return;
+    }
+
+    // Удаляем в порядке зависимостей (нет каскада в схеме)
+    await prisma.$transaction([
+      prisma.round.deleteMany({ where: { gameId: game.id } }),
+      prisma.player.deleteMany({ where: { gameId: game.id } }),
+      prisma.gameTourTheme.deleteMany({ where: { tour: { gameId: game.id } } }),
+      prisma.gameTour.deleteMany({ where: { gameId: game.id } }),
+      prisma.game.delete({ where: { id: game.id } }),
+    ]);
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[game/delete]', err);
+    res.status(500).json({ error: 'Ошибка удаления игры' });
   }
 });
 
