@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+*.log
+.DS_Store
+.turbo/
+coverage/
+.nyc_output/
+server/prisma/migrations/
+client/dist/

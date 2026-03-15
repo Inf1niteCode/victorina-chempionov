@@ -1,0 +1,146 @@
+// ────────────────────────────────────────────
+// Викторина Чемпионов — Prisma Schema
+// ────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ────────────────────────────────────────────
+// ПОЛЬЗОВАТЕЛИ (ведущие)
+// ────────────────────────────────────────────
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime   @default(now())
+  games        Game[]
+  purchases    Purchase[]
+}
+
+// ────────────────────────────────────────────
+// ТЕМЫ И ВОПРОСЫ
+// ────────────────────────────────────────────
+
+model Theme {
+  id          String          @id @default(cuid())
+  name        String
+  category    String          // ИСТОРИЯ|НАУКА|КУЛЬТУРА|СПОРТ|ГЕОГРАФИЯ
+  isFree      Boolean         @default(false)
+  questions   Question[]
+  purchases   Purchase[]
+  tourThemes  GameTourTheme[]
+}
+
+model Question {
+  id      String   @id @default(cuid())
+  text    String
+  answer  String
+  points  Int      // 100|200|300|400|500
+  themeId String
+  theme   Theme    @relation(fields: [themeId], references: [id])
+  rounds  Round[]
+}
+
+// ────────────────────────────────────────────
+// ПОКУПКИ (Stripe)
+// ────────────────────────────────────────────
+
+model Purchase {
+  id        String   @id @default(cuid())
+  userId    String
+  themeId   String
+  stripeId  String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  theme     Theme    @relation(fields: [themeId], references: [id])
+
+  @@unique([userId, themeId])
+}
+
+// ────────────────────────────────────────────
+// ИГРА
+// ────────────────────────────────────────────
+
+model Game {
+  id          String     @id @default(cuid())
+  code        String     @unique   // KVIZ42 — 6 символов
+  hostId      String
+  status      GameStatus @default(LOBBY)
+  timerSecs   Int        @default(30)
+  totalTours  Int        @default(1)
+  currentTour Int        @default(1)
+  createdAt   DateTime   @default(now())
+  host        User       @relation(fields: [hostId], references: [id])
+  players     Player[]
+  tours       GameTour[]
+  rounds      Round[]
+}
+
+model GameTour {
+  id         String          @id @default(cuid())
+  gameId     String
+  tourNumber Int             // 1, 2 или 3
+  status     TourStatus      @default(PENDING)
+  game       Game            @relation(fields: [gameId], references: [id])
+  themes     GameTourTheme[]
+}
+
+model GameTourTheme {
+  id         String   @id @default(cuid())
+  tourId     String
+  themeId    String
+  position   Int      // 1–5, порядок колонки на поле
+  tour       GameTour @relation(fields: [tourId], references: [id])
+  theme      Theme    @relation(fields: [themeId], references: [id])
+
+  @@unique([tourId, position])
+  @@unique([tourId, themeId])
+}
+
+model Player {
+  id     String  @id @default(cuid())
+  name   String
+  score  Int     @default(0)
+  gameId String
+  game   Game    @relation(fields: [gameId], references: [id])
+  rounds Round[]
+}
+
+model Round {
+  id         String    @id @default(cuid())
+  gameId     String
+  questionId String
+  tourNumber Int
+  winnerId   String?
+  correct    Boolean?
+  createdAt  DateTime  @default(now())
+  game       Game      @relation(fields: [gameId], references: [id])
+  question   Question  @relation(fields: [questionId], references: [id])
+  winner     Player?   @relation(fields: [winnerId], references: [id])
+
+  @@unique([gameId, questionId])
+}
+
+// ────────────────────────────────────────────
+// ENUMS
+// ────────────────────────────────────────────
+
+enum GameStatus {
+  LOBBY
+  ACTIVE
+  FINISHED
+}
+
+enum TourStatus {
+  PENDING
+  ACTIVE
+  FINISHED
+}
