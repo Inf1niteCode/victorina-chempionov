@@ -201,6 +201,72 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
   });
 
   // ────────────────────────────────────────────
+  // room:rejoinPlayer — игрок переподключается после обновления страницы
+  // ────────────────────────────────────────────
+
+  socket.on('room:rejoinPlayer', async (data: { code: string; playerId: string; playerName: string }) => {
+    const { code, playerId, playerName } = data;
+    const room = getRoom(code);
+
+    if (!room) {
+      socket.emit('room:error', { message: 'Комната не найдена' });
+      return;
+    }
+
+    // Обновляем socketId игрока в памяти (старый сокет умер при обновлении страницы)
+    const player = room.players.get(playerId);
+    if (player) {
+      player.socketId = socket.id;
+    } else {
+      // Игрока нет в памяти (например сервер перезапускался) — создаём заново в БД не нужно,
+      // просто восстанавливаем запись из БД
+      try {
+        const dbPlayer = await prisma.player.findUnique({ where: { id: playerId } });
+        if (dbPlayer) {
+          room.players.set(playerId, {
+            id: dbPlayer.id,
+            name: dbPlayer.name,
+            score: dbPlayer.score,
+            socketId: socket.id,
+          });
+        }
+      } catch (err) {
+        console.error('[room:rejoinPlayer] db lookup failed', err);
+      }
+    }
+
+    registerSocket(socket.id, code);
+    socket.join(code);
+
+    // Отправляем подтверждение с текущим состоянием
+    socket.emit('room:joined', {
+      playerId,
+      playerName,
+      gameStatus: room.status,
+      currentTour: room.currentTour,
+      totalTours: room.totalTours,
+    });
+
+    // Актуальный список игроков
+    socket.emit('room:playerList', { players: getPlayerList(room) });
+
+    // Если идёт вопрос — отправляем его игроку
+    if (room.activeQuestion) {
+      const aq = room.activeQuestion;
+      socket.emit('question:open', {
+        questionId: aq.questionId,
+        text: aq.text,
+        answer: '',
+        points: aq.points,
+        themeName: aq.themeName,
+        timeLimit: aq.timeLimit,
+      });
+    }
+
+    console.log(`[room:rejoinPlayer] "${playerName}" rejoined room ${code}`);
+  });
+
+  // ────────────────────────────────────────────
   // room:joinDisplay — дисплей подключается к комнате
   // ────────────────────────────────────────────
 

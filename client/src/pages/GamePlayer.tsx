@@ -32,16 +32,16 @@ export default function GamePlayer() {
   // ── Подключение ──────────────────────────
   useEffect(() => {
     if (!code) { navigate('/join'); return; }
-    if (!myPlayerId) { navigate(`/join/${code}`); return; }
+    if (!myPlayerId || !myPlayerName) { navigate(`/join/${code}`); return; }
 
     connectSocket();
     const socket = getSocket();
 
-    // Переподключаемся к комнате если нужно
-    socket.emit('room:getPlayers', { code });
+    // Переподключаемся к комнате с нашим playerId
+    socket.emit('room:rejoinPlayer', { code, playerId: myPlayerId, playerName: myPlayerName });
 
     return () => {};
-  }, [code, myPlayerId]);
+  }, [code, myPlayerId, myPlayerName]);
 
   // ── Buzz ─────────────────────────────────
   const handleBuzz = useCallback(() => {

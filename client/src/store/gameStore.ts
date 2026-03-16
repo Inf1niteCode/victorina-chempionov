@@ -88,8 +88,8 @@ export const useGameStore = create<GameState>()((set) => ({
   totalTours: 1,
   boardThemes: [],
   answeredQuestions: new Set(),
-  myPlayerId: null,
-  myPlayerName: null,
+  myPlayerId: localStorage.getItem('player_id'),
+  myPlayerName: localStorage.getItem('player_name'),
   activeQuestion: null,
   buzzWinner: null,
   isBuzzBlocked: false,
@@ -103,7 +103,11 @@ export const useGameStore = create<GameState>()((set) => ({
   setGameCode: (code) => set({ gameCode: code }),
   setScreen: (screen) => set({ screen }),
   setPlayers: (players) => set({ players }),
-  setMyPlayer: (id, name) => set({ myPlayerId: id, myPlayerName: name }),
+  setMyPlayer: (id, name) => {
+    localStorage.setItem('player_id', id);
+    localStorage.setItem('player_name', name);
+    set({ myPlayerId: id, myPlayerName: name });
+  },
   setBoardThemes: (themes) => set({ boardThemes: themes }),
   setTour: (current, total) => set({ currentTour: current, totalTours: total }),
 
@@ -136,7 +140,9 @@ export const useGameStore = create<GameState>()((set) => ({
   resetBuzzState: () =>
     set({ buzzWinner: null, isBuzzBlocked: false, hasBuzzed: false }),
 
-  resetGame: () =>
+  resetGame: () => {
+    localStorage.removeItem('player_id');
+    localStorage.removeItem('player_name');
     set({
       gameCode: null,
       screen: 'lobby',
@@ -156,5 +162,6 @@ export const useGameStore = create<GameState>()((set) => ({
       finalScores: [],
       winner: null,
       roomError: null,
-    }),
+    });
+  },
 }));
