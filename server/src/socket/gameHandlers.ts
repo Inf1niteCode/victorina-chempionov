@@ -220,6 +220,9 @@ export function registerGameHandlers(io: Server, socket: Socket): void {
         // Разблокируем buzz — другой игрок может нажать
         room.buzzed.delete(playerId);
 
+        // Сообщаем всем клиентам что buzz снова открыт
+        io.to(code).emit('buzz:reset');
+
         console.log(`[score:wrong] -${question.points} for player ${playerId} in room ${code}`);
       } catch (err) {
         console.error('[score:wrong]', err);

@@ -33,6 +33,7 @@ export interface ServerToClientEvents {
   'question:close': (data: { questionId: string }) => void;
   'buzz:winner': (data: { playerId: string; playerName: string }) => void;
   'buzz:blocked': () => void;
+  'buzz:reset': () => void;
   'timer:tick': (data: { secondsLeft: number }) => void;
   'timer:end': () => void;
   'timer:paused': () => void;

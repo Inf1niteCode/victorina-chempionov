@@ -1,4 +1,4 @@
-import { Server } from 'socket.io';
+import { Server, Socket } from 'socket.io';
 import { getRoom } from './roomStore';
 
 // Серверный таймер — единственный источник истины для всех клиентов
@@ -51,7 +51,7 @@ export function stopTimer(code: string): void {
   }
 }
 
-export function registerTimerHandlers(io: Server, socket: ReturnType<typeof io.sockets.sockets.get> extends undefined ? never : InstanceType<typeof Server>['sockets']['sockets'] extends Map<string, infer S> ? S : never): void {
+export function registerTimerHandlers(io: Server, socket: Socket): void {
   // timer:pause
   socket.on('timer:pause', ({ code }: { code: string }) => {
     const room = getRoom(code);

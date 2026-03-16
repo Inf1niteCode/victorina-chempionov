@@ -73,6 +73,8 @@ export interface GameState {
   setFinalResults: (winner: Player, scores: Player[]) => void;
   setRoomError: (msg: string | null) => void;
   resetBuzzState: () => void;
+  resetBuzzForWrong: () => void;
+  resetAnsweredQuestions: () => void;
   resetGame: () => void;
 }
 
@@ -139,6 +141,12 @@ export const useGameStore = create<GameState>()((set) => ({
 
   resetBuzzState: () =>
     set({ buzzWinner: null, isBuzzBlocked: false, hasBuzzed: false }),
+
+  resetBuzzForWrong: () =>
+    set({ buzzWinner: null, isBuzzBlocked: false }),
+
+  resetAnsweredQuestions: () =>
+    set({ answeredQuestions: new Set() }),
 
   resetGame: () => {
     localStorage.removeItem('player_id');

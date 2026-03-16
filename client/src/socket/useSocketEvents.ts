@@ -15,6 +15,7 @@ export function useSocketEvents() {
     markAnswered,
     setBuzzWinner,
     setBuzzBlocked,
+    resetBuzzForWrong,
     setTimer,
     setTimerPaused,
     setTour,
@@ -23,6 +24,7 @@ export function useSocketEvents() {
     setRoomError,
     resetBuzzState,
     setHasBuzzed,
+    resetAnsweredQuestions,
   } = useGameStore();
 
   useEffect(() => {
@@ -53,6 +55,13 @@ export function useSocketEvents() {
       setTour(tourNumber, totalTours);
       setBoardThemes(themes);
       setScreen('board');
+      // Sync answered questions from server state (important for display page and reconnects)
+      resetAnsweredQuestions();
+      themes.forEach((theme: { cells: { questionId: string; answered: boolean }[] }) => {
+        theme.cells.forEach((cell) => {
+          if (cell.answered) markAnswered(cell.questionId);
+        });
+      });
     });
 
     socket.on('tour:end', () => {
@@ -86,6 +95,10 @@ export function useSocketEvents() {
 
     socket.on('buzz:blocked', () => {
       setBuzzBlocked(true);
+    });
+
+    socket.on('buzz:reset', () => {
+      resetBuzzForWrong();
     });
 
     // ── Таймер ───────────────────────────────────
@@ -126,6 +139,7 @@ export function useSocketEvents() {
       socket.off('question:close');
       socket.off('buzz:winner');
       socket.off('buzz:blocked');
+      socket.off('buzz:reset');
       socket.off('timer:tick');
       socket.off('timer:end');
       socket.off('timer:paused');

@@ -3,6 +3,7 @@ import { registerRoomHandlers } from './roomHandlers';
 import { registerGameHandlers } from './gameHandlers';
 import { registerTourHandlers } from './tourHandlers';
 import { registerBuzzHandlers } from './buzzHandlers';
+import { registerTimerHandlers } from './timerHandlers';
 import { registerDisconnectHandler } from './disconnectHandler';
 
 export function initSocket(io: Server): void {
@@ -13,6 +14,7 @@ export function initSocket(io: Server): void {
     registerGameHandlers(io, socket);
     registerTourHandlers(io, socket);
     registerBuzzHandlers(io, socket);
+    registerTimerHandlers(io, socket);
     registerDisconnectHandler(io, socket);
 
     socket.on('ping', (cb) => {
