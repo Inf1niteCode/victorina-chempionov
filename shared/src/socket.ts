@@ -15,6 +15,8 @@ export interface ClientToServerEvents {
   'game:end': (data: { code: string }) => void;
   'room:getPlayers': (data: { code: string }) => void;
   'tour:rejoin': (data: { code: string }) => void;
+  'room:rejoinPlayer': (data: { code: string; playerId: string; playerName: string }) => void;
+  'room:joinDisplay': (data: { code: string }) => void;
 }
 
 export interface ServerToClientEvents {
