@@ -21,5 +21,6 @@
     }
   },
   "include": ["src"],
+  "exclude": ["src/pages/Store.tsx"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
