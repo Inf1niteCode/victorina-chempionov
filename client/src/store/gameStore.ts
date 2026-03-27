@@ -168,7 +168,7 @@ export const useGameStore = create<GameState>()((set) => ({
     set({ buzzWinner: null, isBuzzBlocked: false, hasBuzzed: false, wasWrong: false }),
 
   resetBuzzForWrong: () =>
-    set({ buzzWinner: null, isBuzzBlocked: false }),
+    set({ buzzWinner: null, isBuzzBlocked: false, hasBuzzed: false }),
 
   resetAnsweredQuestions: () =>
     set({ answeredQuestions: new Set() }),

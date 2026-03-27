@@ -110,6 +110,10 @@ export function useSocketEvents() {
     socket.on('buzz:winner', (data) => {
       setBuzzWinner(data);
       playSound('buzz');
+      // Если я победитель (в т.ч. авто-buzz) — помечаем, чтобы wasWrong сработал при buzz:reset
+      if (data.playerId === useGameStore.getState().myPlayerId) {
+        useGameStore.getState().setHasBuzzed(true);
+      }
     });
 
     socket.on('buzz:blocked', () => {
