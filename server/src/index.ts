@@ -9,7 +9,6 @@ import { Server } from 'socket.io';
 import authRouter from './routes/auth';
 import gameRouter from './routes/game';
 import themesRouter from './routes/themes';
-import paymentsRouter from './routes/payments';
 import adminRouter from './routes/admin';
 import { initSocket } from './socket';
 
@@ -20,9 +19,16 @@ const httpServer = http.createServer(app);
 // Socket.io
 // ────────────────────────────────────────────
 
+const isDev = process.env.NODE_ENV !== 'production';
+
+// В dev-режиме разрешаем любой origin (локальная сеть, телефоны по WiFi)
+const corsOrigin = isDev
+  ? true
+  : (process.env.CLIENT_URL || 'http://localhost:5173');
+
 export const io = new Server(httpServer, {
   cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: corsOrigin,
     credentials: true,
   },
   pingTimeout: 60000,
@@ -36,7 +42,7 @@ initSocket(io);
 // ────────────────────────────────────────────
 
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: corsOrigin,
   credentials: true,
 }));
 
@@ -51,7 +57,6 @@ app.use(cookieParser());
 app.use('/api/auth', authRouter);
 app.use('/api/game', gameRouter);
 app.use('/api/themes', themesRouter);
-app.use('/api/payments', paymentsRouter);
 app.use('/api/admin', adminRouter);
 
 // Health check

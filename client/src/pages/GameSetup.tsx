@@ -9,7 +9,6 @@ const TIMER_OPTIONS = [
   { value: 15, label: "15 сек" },
   { value: 30, label: "30 сек" },
   { value: 60, label: "1 мин" },
-  { value: 90, label: "1:30" },
 ];
 
 export default function GameSetup() {
@@ -35,14 +34,6 @@ export default function GameSetup() {
 
   const [activeTourTab, setActiveTourTab] = useState(0);
 
-  useEffect(() => {
-    themesApi
-      .getAll()
-      .then(setThemes)
-      .catch(() => setError("Не удалось загрузить темы"))
-      .finally(() => setIsLoading(false));
-  }, []);
-
   // Все themeIds занятые в других турах
   const usedInOtherTours = (tourIdx: number) =>
     selectedByTour.filter((_, i) => i !== tourIdx).flat();
@@ -54,6 +45,15 @@ export default function GameSetup() {
   const allToursReady = Array.from({ length: totalTours }).every(
     (_, i) => selectedByTour[i].length === 5,
   );
+
+  useEffect(() => {
+    themesApi
+      .getAll()
+      .then(setThemes)
+      .catch(() => setError("Не удалось загрузить темы"))
+      .finally(() => setIsLoading(false));
+  }, []);
+
 
   const handleCreate = async () => {
     if (!allToursReady) {
@@ -105,179 +105,200 @@ export default function GameSetup() {
     );
   }
 
+  const currentSelected = selectedByTour[activeTourTab]?.length ?? 0;
+  const MAX_THEMES = 5;
+
   return (
     <div className="min-h-screen" style={{ background: "var(--bg-deep)" }}>
-      {/* ── Шапка ── */}
-      <header
-        className="px-4 py-3 sm:px-6 sm:py-4 flex items-center gap-4 sticky top-0 z-10"
-        style={{
-          background: "var(--bg-card)",
-          borderBottom: "1px solid var(--border)",
-        }}
-      >
-        <button
-          onClick={() => navigate("/dashboard")}
-          className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-xl transition-all hover:opacity-85"
-          style={{
-            background: "var(--bg-surface)",
-            color: "var(--text-primary)",
-            border: "1px solid var(--border)",
-          }}
+      {/* ── Sticky-блок: шапка + полоска прогресса ── */}
+      <div className="sticky top-0 z-20" style={{ background: "var(--bg-card)" }}>
+
+        {/* Шапка */}
+        <header
+          className="px-4 py-3 sm:px-6 sm:py-4 flex items-center gap-4"
+          style={{ borderBottom: "1px solid var(--border)" }}
         >
-          ← Назад
-        </button>
-        <h1
-          className="font-bold text-lg"
-          style={{ color: "var(--text-primary)" }}
-        >
-          Новая игра
-        </h1>
-      </header>
+          <button
+            onClick={() => navigate("/dashboard")}
+            className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-xl transition-all hover:opacity-85"
+            style={{
+              background: "var(--bg-surface)",
+              color: "var(--text-primary)",
+              border: "1px solid var(--border)",
+            }}
+          >
+            ← Назад
+          </button>
+          <h1
+            className="font-bold text-lg flex-1"
+            style={{ color: "var(--text-primary)" }}
+          >
+            Новая игра
+          </h1>
+
+          {/* Кнопка создать — в шапке когда всё готово */}
+          <AnimatePresence>
+            {allToursReady && (
+              <motion.button
+                key="create-header"
+                initial={{ opacity: 0, scale: 0.9, x: 20 }}
+                animate={{ opacity: 1, scale: 1, x: 0 }}
+                exit={{ opacity: 0, scale: 0.9, x: 20 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                onClick={handleCreate}
+                disabled={isCreating}
+                whileHover={!isCreating ? { scale: 1.04, opacity: 0.9 } : {}}
+                className="flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-xl"
+                style={{
+                  background: isCreating
+                    ? "var(--bg-surface)"
+                    : "linear-gradient(135deg, var(--accent-gold) 0%, #f97316 100%)",
+                  color: isCreating ? "var(--text-muted)" : "#07090F",
+                  boxShadow: isCreating ? "none" : "0 4px 16px rgba(245,158,11,0.35)",
+                  flexShrink: 0,
+                }}
+              >
+                {isCreating ? "..." : "🚀 Создать"}
+              </motion.button>
+            )}
+          </AnimatePresence>
+        </header>
+
+        {/* Полоска прогресса выбора тем (видна только на шаге выбора тем) */}
+        <div className="px-4 sm:px-6 py-2 flex items-center gap-3"
+          style={{ borderBottom: "1px solid var(--border)" }}>
+          <span className="text-xs flex-shrink-0" style={{ color: "var(--text-muted)", minWidth: 90 }}>
+            Тур {activeTourTab + 1} — тем:
+          </span>
+          <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: "var(--bg-surface)" }}>
+            <motion.div
+              className="h-full rounded-full"
+              style={{
+                background: currentSelected === MAX_THEMES
+                  ? "var(--accent-green)"
+                  : "var(--accent-gold)",
+              }}
+              animate={{ width: `${(currentSelected / MAX_THEMES) * 100}%` }}
+              transition={{ type: "spring", stiffness: 200, damping: 20 }}
+            />
+          </div>
+          <span
+            className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0"
+            style={{
+              background: currentSelected === MAX_THEMES
+                ? "rgba(16,185,129,0.15)"
+                : "rgba(245,158,11,0.15)",
+              color: currentSelected === MAX_THEMES
+                ? "var(--accent-green)"
+                : "var(--accent-gold)",
+              border: `1px solid ${currentSelected === MAX_THEMES
+                ? "rgba(16,185,129,0.3)"
+                : "rgba(245,158,11,0.3)"}`,
+            }}
+          >
+            {currentSelected} / {MAX_THEMES}
+          </span>
+        </div>
+      </div>
 
       <div className="max-w-3xl mx-auto px-4 py-6 sm:px-6 sm:py-8 space-y-6 sm:space-y-8">
-        {/* ── Шаг 1: Число туров ── */}
+        {/* ── Шаг 1: Настройки игры (туры + таймер) ── */}
         <motion.section
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           className="rounded-2xl p-4 sm:p-6"
-          style={{
-            background: "var(--bg-card)",
-            border: "1px solid var(--border)",
-          }}
+          style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}
         >
-          <h2
-            className="font-semibold mb-1"
-            style={{ color: "var(--text-primary)" }}
-          >
-            Число туров
-          </h2>
-          <p className="text-sm mb-4" style={{ color: "var(--text-muted)" }}>
-            В каждом туре 5 тем × 5 вопросов = 25 вопросов
-          </p>
-          <div className="flex gap-3">
-            {[1, 2, 3].map((n) => (
-              <button
-                key={n}
-                onClick={() => {
-                  setTotalTours(n);
-                  setActiveTourTab(0);
-                }}
-                className="flex-1 py-3 sm:py-4 rounded-xl font-bold text-xl sm:text-2xl transition-all"
-                style={{
-                  background:
-                    totalTours === n
-                      ? "rgba(59,130,246,0.15)"
-                      : "var(--bg-surface)",
-                  border: `2px solid ${totalTours === n ? "var(--accent-blue)" : "var(--border)"}`,
-                  color:
-                    totalTours === n
-                      ? "var(--accent-blue)"
-                      : "var(--text-muted)",
-                }}
-              >
-                {n}
-              </button>
-            ))}
-          </div>
-        </motion.section>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
 
-        {/* ── Шаг 2: Таймер ── */}
-        <motion.section
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          className="rounded-2xl p-4 sm:p-6"
-          style={{
-            background: "var(--bg-card)",
-            border: "1px solid var(--border)",
-          }}
-        >
-          <h2
-            className="font-semibold mb-1"
-            style={{ color: "var(--text-primary)" }}
-          >
-            Таймер на вопрос
-          </h2>
-          <p className="text-sm mb-4" style={{ color: "var(--text-muted)" }}>
-            Сколько секунд даётся на ответ
-          </p>
-          <div className="flex flex-wrap gap-2 mb-3">
-            {TIMER_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                onClick={() => {
-                  setTimerSecs(opt.value);
-                  setUseCustomTimer(false);
-                }}
-                className="px-5 py-2.5 rounded-xl font-medium transition-all"
-                style={{
-                  background:
-                    timerSecs === opt.value && !useCustomTimer
-                      ? "rgba(245,158,11,0.15)"
-                      : "var(--bg-surface)",
-                  border: `1px solid ${
-                    timerSecs === opt.value && !useCustomTimer
-                      ? "rgba(245,158,11,0.5)"
-                      : "var(--border)"
-                  }`,
-                  color:
-                    timerSecs === opt.value && !useCustomTimer
-                      ? "var(--accent-gold)"
-                      : "var(--text-muted)",
-                }}
-              >
-                {opt.label}
-              </button>
-            ))}
-
-            {/* Своё значение */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setUseCustomTimer(!useCustomTimer)}
-                className="px-4 py-2.5 rounded-xl font-medium transition-all text-sm"
-                style={{
-                  background: useCustomTimer
-                    ? "rgba(245,158,11,0.15)"
-                    : "var(--bg-surface)",
-                  border: `1px solid ${useCustomTimer ? "rgba(245,158,11,0.5)" : "var(--border)"}`,
-                  color: useCustomTimer
-                    ? "var(--accent-gold)"
-                    : "var(--text-muted)",
-                }}
-              >
-                Своё
-              </button>
-              <AnimatePresence>
-                {useCustomTimer && (
-                  <motion.input
-                    initial={{ width: 0, opacity: 0 }}
-                    animate={{ width: 80, opacity: 1 }}
-                    exit={{ width: 0, opacity: 0 }}
-                    type="number"
-                    min={10}
-                    max={120}
-                    value={customTimer}
-                    onChange={(e) => setCustomTimer(e.target.value)}
-                    placeholder="сек"
-                    className="py-2.5 px-3 rounded-xl text-sm outline-none"
+            {/* Число туров */}
+            <div>
+              <h2 className="font-semibold mb-1" style={{ color: "var(--text-primary)" }}>
+                Число туров
+              </h2>
+              <p className="text-xs mb-3" style={{ color: "var(--text-muted)" }}>
+                5 тем × 5 вопросов = 25 за тур
+              </p>
+              <div className="flex gap-2">
+                {[1, 2, 3].map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => { setTotalTours(n); setActiveTourTab(0); }}
+                    className="flex-1 py-3 rounded-xl font-bold text-sm transition-all hover:opacity-80"
                     style={{
-                      background: "var(--bg-surface)",
-                      border: "1px solid var(--border)",
-                      color: "var(--text-primary)",
-                      width: 80,
+                      background: totalTours === n ? "rgba(59,130,246,0.15)" : "var(--bg-surface)",
+                      border: `2px solid ${totalTours === n ? "var(--accent-blue)" : "var(--border)"}`,
+                      color: totalTours === n ? "var(--accent-blue)" : "var(--text-muted)",
                     }}
-                  />
-                )}
-              </AnimatePresence>
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
             </div>
+
+            {/* Таймер */}
+            <div>
+              <h2 className="font-semibold mb-1" style={{ color: "var(--text-primary)" }}>
+                Таймер на вопрос
+              </h2>
+              <p className="text-xs mb-3" style={{ color: "var(--text-muted)" }}>
+                Итого: <strong style={{ color: "var(--accent-gold)" }}>{effectiveTimer} сек</strong> на ответ
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {TIMER_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => { setTimerSecs(opt.value); setUseCustomTimer(false); }}
+                    className="px-3 py-3 rounded-xl text-sm font-medium transition-all hover:opacity-80"
+                    style={{
+                      background: timerSecs === opt.value && !useCustomTimer ? "rgba(245,158,11,0.15)" : "var(--bg-surface)",
+                      border: `1px solid ${timerSecs === opt.value && !useCustomTimer ? "rgba(245,158,11,0.5)" : "var(--border)"}`,
+                      color: timerSecs === opt.value && !useCustomTimer ? "var(--accent-gold)" : "var(--text-muted)",
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setUseCustomTimer(!useCustomTimer)}
+                    className="px-3 py-3 rounded-xl text-sm font-medium transition-all hover:opacity-80"
+                    style={{
+                      background: useCustomTimer ? "rgba(245,158,11,0.15)" : "var(--bg-surface)",
+                      border: `1px solid ${useCustomTimer ? "rgba(245,158,11,0.5)" : "var(--border)"}`,
+                      color: useCustomTimer ? "var(--accent-gold)" : "var(--text-muted)",
+                    }}
+                  >
+                    Своё
+                  </button>
+                  <AnimatePresence>
+                    {useCustomTimer && (
+                      <motion.input
+                        initial={{ width: 0, opacity: 0 }}
+                        animate={{ width: 72, opacity: 1 }}
+                        exit={{ width: 0, opacity: 0 }}
+                        type="number"
+                        min={10}
+                        max={120}
+                        value={customTimer}
+                        onChange={(e) => setCustomTimer(e.target.value)}
+                        placeholder="сек"
+                        className="py-2 px-3 rounded-xl text-sm outline-none"
+                        style={{
+                          background: "var(--bg-surface)",
+                          border: "1px solid var(--border)",
+                          color: "var(--text-primary)",
+                          width: 72,
+                        }}
+                      />
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+            </div>
+
           </div>
-          <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-            Итого:{" "}
-            <strong style={{ color: "var(--accent-gold)" }}>
-              {effectiveTimer} сек
-            </strong>{" "}
-            на каждый вопрос
-          </p>
         </motion.section>
 
         {/* ── Шаг 3: Выбор тем ── */}
@@ -322,7 +343,7 @@ export default function GameSetup() {
                   <button
                     key={i}
                     onClick={() => setActiveTourTab(i)}
-                    className="flex-1 py-3 text-sm font-medium transition-all relative"
+                    className="flex-1 py-3 text-sm font-medium transition-all hover:opacity-80 relative"
                     style={{
                       color:
                         activeTourTab === i
@@ -441,7 +462,7 @@ export default function GameSetup() {
           <button
             onClick={handleCreate}
             disabled={!allToursReady || isCreating}
-            className="w-full py-4 sm:py-5 rounded-2xl font-bold text-base sm:text-xl transition-all"
+            className="w-full py-4 sm:py-5 rounded-2xl font-bold text-base sm:text-xl transition-all hover:opacity-90 active:scale-[0.99]"
             style={{
               background:
                 allToursReady && !isCreating

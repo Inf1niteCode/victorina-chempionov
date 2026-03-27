@@ -1,7 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../prisma/client';
 import { requireAdmin } from '../middleware/auth';
-import { getSettings, saveSettings } from '../services/settings';
 
 const router = Router();
 
@@ -22,15 +21,15 @@ router.get('/themes', requireAdmin, async (_req: Request, res: Response) => {
 // ─── POST /api/admin/themes ──────────────────
 router.post('/themes', requireAdmin, async (req: Request, res: Response) => {
   try {
-    const { name, category, isFree } = req.body as {
-      name: string; category: string; isFree: boolean;
+    const { name, category } = req.body as {
+      name: string; category: string;
     };
     if (!name?.trim() || !category?.trim()) {
       res.status(400).json({ error: 'name и category обязательны' });
       return;
     }
     const theme = await prisma.theme.create({
-      data: { name: name.trim(), category: category.trim().toUpperCase(), isFree: Boolean(isFree) },
+      data: { name: name.trim(), category: category.trim().toUpperCase() },
       include: { questions: true },
     });
     res.json({ theme });
@@ -43,15 +42,14 @@ router.post('/themes', requireAdmin, async (req: Request, res: Response) => {
 // ─── PATCH /api/admin/themes/:id ─────────────
 router.patch('/themes/:id', requireAdmin, async (req: Request, res: Response) => {
   try {
-    const { name, category, isFree } = req.body as {
-      name?: string; category?: string; isFree?: boolean;
+    const { name, category } = req.body as {
+      name?: string; category?: string;
     };
     const theme = await prisma.theme.update({
       where: { id: req.params.id },
       data: {
         ...(name !== undefined && { name: name.trim() }),
         ...(category !== undefined && { category: category.trim().toUpperCase() }),
-        ...(isFree !== undefined && { isFree: Boolean(isFree) }),
       },
       include: { questions: { orderBy: { points: 'asc' } } },
     });
@@ -77,8 +75,9 @@ router.delete('/themes/:id', requireAdmin, async (req: Request, res: Response) =
 // ─── POST /api/admin/themes/:id/questions ────
 router.post('/themes/:id/questions', requireAdmin, async (req: Request, res: Response) => {
   try {
-    const { text, answer, points } = req.body as {
+    const { text, answer, points, questionType, mediaUrl } = req.body as {
       text: string; answer: string; points: number;
+      questionType?: string; mediaUrl?: string;
     };
     if (!text?.trim() || !answer?.trim() || !points) {
       res.status(400).json({ error: 'text, answer и points обязательны' });
@@ -89,8 +88,17 @@ router.post('/themes/:id/questions', requireAdmin, async (req: Request, res: Res
       res.status(400).json({ error: 'points должен быть 100|200|300|400|500' });
       return;
     }
+    const validTypes = ['TEXT', 'IMAGE', 'AUDIO', 'VIDEO'];
+    const qType = questionType && validTypes.includes(questionType) ? questionType : 'TEXT';
     const question = await prisma.question.create({
-      data: { text: text.trim(), answer: answer.trim(), points: Number(points), themeId: req.params.id },
+      data: {
+        text: text.trim(),
+        answer: answer.trim(),
+        points: Number(points),
+        themeId: req.params.id,
+        questionType: qType as 'TEXT' | 'IMAGE' | 'AUDIO' | 'VIDEO',
+        mediaUrl: mediaUrl?.trim() || null,
+      },
     });
     res.json({ question });
   } catch (err) {
@@ -102,19 +110,25 @@ router.post('/themes/:id/questions', requireAdmin, async (req: Request, res: Res
 // ─── PATCH /api/admin/questions/:id ──────────
 router.patch('/questions/:id', requireAdmin, async (req: Request, res: Response) => {
   try {
-    const { text, answer, points } = req.body as {
+    const { text, answer, points, questionType, mediaUrl } = req.body as {
       text?: string; answer?: string; points?: number;
+      questionType?: string; mediaUrl?: string;
     };
     if (points !== undefined && ![100, 200, 300, 400, 500].includes(Number(points))) {
       res.status(400).json({ error: 'points должен быть 100|200|300|400|500' });
       return;
     }
+    const validTypes = ['TEXT', 'IMAGE', 'AUDIO', 'VIDEO'];
     const question = await prisma.question.update({
       where: { id: req.params.id },
       data: {
         ...(text !== undefined && { text: text.trim() }),
         ...(answer !== undefined && { answer: answer.trim() }),
         ...(points !== undefined && { points: Number(points) }),
+        ...(questionType !== undefined && validTypes.includes(questionType) && {
+          questionType: questionType as 'TEXT' | 'IMAGE' | 'AUDIO' | 'VIDEO',
+        }),
+        ...(mediaUrl !== undefined && { mediaUrl: mediaUrl.trim() || null }),
       },
     });
     res.json({ question });
@@ -133,24 +147,6 @@ router.delete('/questions/:id', requireAdmin, async (req: Request, res: Response
     console.error('[admin/questions DELETE]', err);
     res.status(500).json({ error: 'Ошибка удаления вопроса' });
   }
-});
-
-// ─── GET /api/admin/settings ──────────────────
-router.get('/settings', requireAdmin, (_req: Request, res: Response) => {
-  res.json(getSettings());
-});
-
-// ─── PATCH /api/admin/settings ────────────────
-router.patch('/settings', requireAdmin, (req: Request, res: Response) => {
-  const { themePrice, bundleDiscount } = req.body as {
-    themePrice?: number;
-    bundleDiscount?: number;
-  };
-  const updated = saveSettings({
-    ...(themePrice !== undefined && { themePrice: Math.round(Number(themePrice) * 100) }),
-    ...(bundleDiscount !== undefined && { bundleDiscount: Number(bundleDiscount) }),
-  });
-  res.json(updated);
 });
 
 export default router;

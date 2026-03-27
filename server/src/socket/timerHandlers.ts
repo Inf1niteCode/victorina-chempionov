@@ -15,7 +15,8 @@ export function startTimer(
   aq.pausedAt = null;
   aq.remainingMs = aq.timeLimit * 1000;
 
-  // Эмитируем первый тик сразу
+  // Сбрасываем состояние паузы у клиентов и эмитируем первый тик
+  io.to(code).emit('timer:reset');
   io.to(code).emit('timer:tick', { secondsLeft: aq.timeLimit });
 
   const interval = setInterval(() => {
@@ -90,16 +91,8 @@ export function registerTimerHandlers(io: Server, socket: Socket): void {
     io.to(code).emit('timer:reset');
 
     startTimer(io, code, () => {
-      autoCloseQuestion(io, code);
+      // Таймер истёк после сброса — вопрос остаётся открытым, ведущий закрывает вручную
     });
   });
 }
 
-function autoCloseQuestion(io: Server, code: string): void {
-  const room = getRoom(code);
-  if (!room?.activeQuestion) return;
-  const qId = room.activeQuestion.questionId;
-  room.activeQuestion = null;
-  room.buzzed = new Set();
-  io.to(code).emit('question:close', { questionId: qId });
-}

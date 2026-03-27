@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { connectSocket, getSocket } from '../socket/socket';
@@ -21,12 +21,16 @@ export default function GameHost() {
     screen, players, boardThemes, answeredQuestions,
     activeQuestion, buzzWinner, timerSeconds, timerPaused,
     currentTour, totalTours, setGameCode, setTour,
-    setRoomError, resetGame,
+    setRoomError, resetGame, currentPicker, playerOrder,
   } = useGameStore();
+
+  const [manualDelta, setManualDelta] = useState<Record<string, string>>({});
 
   // ── Подключение к комнате ────────────────
   useEffect(() => {
     if (!code) return;
+
+    let cleanup: (() => void) | null = null;
 
     const setup = async () => {
       try {
@@ -41,22 +45,28 @@ export default function GameHost() {
         connectSocket();
         const socket = getSocket();
 
-        socket.emit('room:create', {
-          code, gameId: game.id,
-          timerSecs: game.timerSecs,
-          totalTours: game.totalTours,
-        });
+        // Re-emit room:create on every reconnect so room survives server restarts
+        const createRoom = () => {
+          socket.emit('room:create', {
+            code, gameId: game.id,
+            timerSecs: game.timerSecs,
+            totalTours: game.totalTours,
+          });
+          if (game.status === 'ACTIVE') {
+            socket.emit('tour:rejoin', { code });
+          }
+        };
 
-        // Если игра уже активна — запрашиваем текущий тур
-        if (game.status === 'ACTIVE') {
-          socket.emit('tour:rejoin', { code });
-        }
+        socket.on('connect', createRoom);
+        if (socket.connected) createRoom();
+        cleanup = () => socket.off('connect', createRoom);
       } catch (err) {
         navigate('/dashboard');
       }
     };
 
     setup();
+    return () => { cleanup?.(); };
   }, [code]);
 
   // ── Действия ведущего ────────────────────
@@ -67,9 +77,9 @@ export default function GameHost() {
 
   const handleCorrect = useCallback((playerId: string) => {
     if (!code || !activeQuestion) return;
-    const socket = getSocket();
-    socket.emit('score:correct', { code, playerId, questionId: activeQuestion.questionId });
-    socket.emit('question:close', { code, questionId: activeQuestion.questionId });
+    const qId = activeQuestion.questionId;
+    getSocket().emit('score:correct', { code, playerId, questionId: qId });
+    getSocket().emit('question:close', { code, questionId: qId });
   }, [code, activeQuestion]);
 
   const handleWrong = useCallback((playerId: string) => {
@@ -101,6 +111,11 @@ export default function GameHost() {
   const handleEndGame = useCallback(() => {
     if (!code || !confirm('Завершить игру досрочно?')) return;
     getSocket().emit('game:end', { code });
+  }, [code]);
+
+  const handleManualScore = useCallback((playerId: string, delta: number) => {
+    if (!code) return;
+    getSocket().emit('score:manual', { code, playerId, delta });
   }, [code]);
 
   if (!code) return null;
@@ -151,6 +166,14 @@ export default function GameHost() {
               <motion.div key="board"
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }} className="flex-1 flex flex-col">
+                {currentPicker && (
+                  <div className="mb-3 px-4 py-2 rounded-xl flex items-center gap-2 flex-shrink-0"
+                    style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)' }}>
+                    <span>👆</span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Выбирает:</span>
+                    <span style={{ fontWeight: 700, color: 'var(--accent-gold)' }}>#{currentPicker.playerNumber} {currentPicker.playerName}</span>
+                  </div>
+                )}
                 <GameBoard
                   themes={boardThemes}
                   answeredQuestions={answeredQuestions}
@@ -175,6 +198,8 @@ export default function GameHost() {
                   timerPaused={timerPaused}
                   buzzWinner={buzzWinner}
                   showAnswer={true}
+                  questionType={activeQuestion.questionType}
+                  mediaUrl={activeQuestion.mediaUrl}
                   onCorrect={handleCorrect}
                   onWrong={handleWrong}
                   onPause={handlePause}
@@ -255,16 +280,52 @@ export default function GameHost() {
         </div>
 
         {/* ── Правая панель: счёт (десктоп) ── */}
-        <div className="hidden lg:flex w-64 flex-shrink-0 border-l flex-col"
+        <div className="hidden lg:flex w-72 flex-shrink-0 border-l flex-col"
           style={{ borderColor: 'var(--border)', background: 'var(--bg-card)' }}>
           <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
             <p className="text-xs font-semibold uppercase tracking-wide"
               style={{ color: 'var(--text-muted)' }}>
               Счёт игроков
             </p>
+            {currentPicker && (
+              <p className="text-xs mt-1" style={{ color: 'var(--accent-gold)' }}>
+                Выбирает: <strong>#{currentPicker.playerNumber} {currentPicker.playerName}</strong>
+              </p>
+            )}
           </div>
-          <div className="flex-1 overflow-y-auto p-3">
-            <Scoreboard players={players} compact />
+          <div className="flex-1 overflow-y-auto p-2">
+            {[...players].sort((a, b) => b.score - a.score).map((p) => {
+              const num = playerOrder.indexOf(p.id) + 1;
+              return (
+                <div key={p.id} className="flex items-center gap-1.5 py-1.5 px-2 rounded-xl mb-1"
+                  style={{ background: 'var(--bg-surface)' }}>
+                  <span className="text-xs font-bold w-5 text-center flex-shrink-0"
+                    style={{ color: 'var(--text-muted)' }}>
+                    #{num || '?'}
+                  </span>
+                  <span className="flex-1 text-sm truncate" style={{ color: 'var(--text-primary)' }}>
+                    {p.name}
+                  </span>
+                  <span className="text-sm font-bold flex-shrink-0" style={{ color: 'var(--accent-gold)' }}>
+                    {p.score}
+                  </span>
+                  <div className="flex gap-0.5 flex-shrink-0">
+                    <button
+                      onClick={() => handleManualScore(p.id, -100)}
+                      className="w-6 h-6 rounded text-xs font-bold flex items-center justify-center"
+                      style={{ background: 'rgba(239,68,68,0.15)', color: 'var(--accent-red)', border: '1px solid rgba(239,68,68,0.3)' }}
+                      title="-100"
+                    >−</button>
+                    <button
+                      onClick={() => handleManualScore(p.id, +100)}
+                      className="w-6 h-6 rounded text-xs font-bold flex items-center justify-center"
+                      style={{ background: 'rgba(16,185,129,0.15)', color: 'var(--accent-green)', border: '1px solid rgba(16,185,129,0.3)' }}
+                      title="+100"
+                    >+</button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
           <div className="p-3 border-t" style={{ borderColor: 'var(--border)' }}>
             <div className="rounded-xl p-3 text-center" style={{ background: 'var(--bg-surface)' }}>

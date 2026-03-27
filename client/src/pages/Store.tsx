@@ -171,9 +171,6 @@ export default function Store() {
     return { cat, meta, all, paid, free, purchased, unpurchased, bundlePrice, fullPrice, allBought };
   });
 
-  const totalPurchased = themes.filter((t) => t.isPurchased && !t.isFree).length;
-  const totalPaid = themes.filter((t) => !t.isFree).length;
-
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-deep)' }}>
@@ -199,14 +196,9 @@ export default function Store() {
             }}>
             ← Назад
           </button>
-          <div>
-            <h1 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>
-              🛒 Магазин тем
-            </h1>
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-              {totalPurchased} из {totalPaid} куплено
-            </p>
-          </div>
+          <h1 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>
+            🛒 Магазин тем
+          </h1>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -269,31 +261,6 @@ export default function Store() {
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* ── Прогресс покупок ── */}
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl p-5"
-          style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
-              Прогресс разблокировки
-            </span>
-            <span className="text-sm font-bold" style={{ color: 'var(--accent-gold)' }}>
-              {totalPurchased} / {totalPaid}
-            </span>
-          </div>
-          <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--bg-surface)' }}>
-            <motion.div className="h-full rounded-full"
-              style={{ background: 'linear-gradient(90deg, var(--accent-gold), #f97316)' }}
-              animate={{ width: `${totalPaid ? (totalPurchased / totalPaid) * 100 : 0}%` }}
-              transition={{ duration: 0.8, ease: 'easeOut' }} />
-          </div>
-          <div className="mt-2">
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-              Вам доступно 63 бесплатные темы
-            </span>
-          </div>
-        </motion.div>
 
         {/* ── Табы: Темы / Наборы ── */}
         <div className="flex rounded-2xl p-1 gap-1"
@@ -687,19 +654,6 @@ export default function Store() {
             </div>
           </>
         )}
-
-        {/* ── Пояснение про оплату ── */}
-        <div className="rounded-2xl p-5 text-sm space-y-2"
-          style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-          <p className="font-medium" style={{ color: 'var(--text-primary)' }}>ℹ️ Как это работает</p>
-          <p style={{ color: 'var(--text-muted)' }}>
-            Каждая платная тема стоит <strong style={{ color: 'var(--accent-gold)' }}>100 ₽</strong> поштучно или{' '}
-            <strong style={{ color: 'var(--accent-gold)' }}>80 ₽</strong> при покупке набором (от 3 до 5 тем). Разовая покупка — тема навсегда в вашем аккаунте.
-          </p>
-          <p style={{ color: 'var(--text-muted)' }}>
-            Оплата через Stripe. Принимаются карты Visa, Mastercard, МИР.
-          </p>
-        </div>
 
         <div className="pb-8" />
       </div>

@@ -16,13 +16,13 @@ datasource db {
 // ────────────────────────────────────────────
 
 model User {
-  id           String     @id @default(cuid())
-  email        String     @unique
-  passwordHash String
-  name         String
-  createdAt    DateTime   @default(now())
-  games        Game[]
-  purchases    Purchase[]
+  id             String     @id @default(cuid())
+  email          String     @unique
+  passwordHash   String
+  name           String
+  emailVerified  Boolean    @default(false)
+  createdAt      DateTime   @default(now())
+  games          Game[]
 }
 
 // ────────────────────────────────────────────
@@ -33,36 +33,20 @@ model Theme {
   id          String          @id @default(cuid())
   name        String
   category    String          // ИСТОРИЯ|НАУКА|КУЛЬТУРА|СПОРТ|ГЕОГРАФИЯ
-  isFree      Boolean         @default(false)
   questions   Question[]
-  purchases   Purchase[]
   tourThemes  GameTourTheme[]
 }
 
 model Question {
-  id      String   @id @default(cuid())
-  text    String
-  answer  String
-  points  Int      // 100|200|300|400|500
-  themeId String
-  theme   Theme    @relation(fields: [themeId], references: [id])
-  rounds  Round[]
-}
-
-// ────────────────────────────────────────────
-// ПОКУПКИ (Stripe)
-// ────────────────────────────────────────────
-
-model Purchase {
-  id        String   @id @default(cuid())
-  userId    String
-  themeId   String
-  stripeId  String
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
-  theme     Theme    @relation(fields: [themeId], references: [id])
-
-  @@unique([userId, themeId])
+  id           String       @id @default(cuid())
+  text         String
+  answer       String
+  points       Int          // 100|200|300|400|500
+  themeId      String
+  questionType QuestionType @default(TEXT)
+  mediaUrl     String?      // URL для IMAGE/AUDIO/VIDEO
+  theme        Theme        @relation(fields: [themeId], references: [id])
+  rounds       Round[]
 }
 
 // ────────────────────────────────────────────
@@ -143,4 +127,11 @@ enum TourStatus {
   PENDING
   ACTIVE
   FINISHED
+}
+
+enum QuestionType {
+  TEXT
+  IMAGE
+  AUDIO
+  VIDEO
 }

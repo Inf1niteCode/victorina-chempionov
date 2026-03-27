@@ -1,4 +1,6 @@
+import { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { playSound } from '../../utils/sounds';
 
 interface Props {
   seconds: number;
@@ -9,6 +11,15 @@ interface Props {
 
 export default function Timer({ seconds, total, paused = false, size = 'md' }: Props) {
   const pct = total > 0 ? seconds / total : 0;
+  const prevSeconds = useRef(seconds);
+
+  // Звук предупреждения при малом количестве секунд (только для больших таймеров)
+  useEffect(() => {
+    if (size !== 'sm' && !paused && seconds > 0 && seconds <= 5 && seconds !== prevSeconds.current) {
+      playSound('timerWarning');
+    }
+    prevSeconds.current = seconds;
+  }, [seconds, paused, size]);
 
   const color = seconds <= 5
     ? 'var(--accent-red)'

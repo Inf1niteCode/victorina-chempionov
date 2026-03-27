@@ -17,6 +17,8 @@ export interface ActiveQuestion {
   points: number;
   themeName: string;
   timeLimit: number;
+  questionType: string;
+  mediaUrl?: string;
   startedAt: number;   // Date.now()
   timerId: ReturnType<typeof setTimeout> | null;
   pausedAt: number | null;
@@ -36,6 +38,10 @@ export interface RoomState {
   buzzed: Set<string>;
   penalizedPlayers: Set<string>; // playerId:questionId — защита от двойного списания
   status: 'LOBBY' | 'ACTIVE' | 'FINISHED';
+  playerOrder: string[];               // playerId[] в порядке вступления
+  currentPickerIndex: number;          // кто сейчас выбирает вопрос
+  lastCorrectPlayerId: string | null;  // кто ответил правильно на последний вопрос
+  activeBuzzWinner: { playerId: string; playerName: string } | null;
 }
 
 // Глобальный реестр комнат: code → RoomState

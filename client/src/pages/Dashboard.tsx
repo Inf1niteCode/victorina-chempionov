@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../store/authStore';
 import api from '../api/client';
+import UserMenu from '../components/UserMenu/UserMenu';
 
 interface PlayerResult {
   id: string;
@@ -71,12 +72,6 @@ export default function Dashboard() {
     FINISHED: { label: 'Завершена', color: 'var(--text-muted)' },
   };
 
-  const stats = [
-    { label: 'Игр проведено', value: games.length, icon: '🎮', color: 'var(--accent-blue)' },
-    { label: 'Купленных тем', value: user?.purchases?.length ?? 0, icon: '📚', color: 'var(--accent-gold)' },
-    { label: 'Бесплатных тем', value: 63, icon: '🎁', color: 'var(--accent-green)' },
-    { label: 'Всего тем', value: 130, icon: '🗂️', color: 'var(--text-muted)' },
-  ];
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-deep)' }}>
@@ -92,7 +87,7 @@ export default function Dashboard() {
             Викторина Чемпионов
           </span>
         </div>
-        <nav className="flex items-center gap-2 sm:gap-4">
+        <nav className="flex items-center gap-2 sm:gap-3">
           {user?.isAdmin && (
             <Link
               to="/admin"
@@ -106,72 +101,13 @@ export default function Dashboard() {
               Админ
             </Link>
           )}
-          <Link
-            to="/store"
-            className="text-sm font-semibold px-3 py-1.5 rounded-xl transition-all hover:opacity-85"
-            style={{
-              background: 'linear-gradient(135deg, var(--accent-gold) 0%, #f97316 100%)',
-              color: '#07090F',
-              boxShadow: '0 4px 12px rgba(245,158,11,0.25)',
-            }}
-          >
-            Магазин тем
-          </Link>
-          <button
-            onClick={handleLogout}
-            className="text-sm px-3 py-1.5 rounded-lg transition-all"
-            style={{
-              background: 'var(--bg-surface)',
-              color: 'var(--text-muted)',
-              border: '1px solid var(--border)',
-            }}
-          >
-            Выйти
-          </button>
+          {user && <UserMenu user={user} onLogout={handleLogout} />}
         </nav>
       </header>
 
       <div className="max-w-5xl mx-auto px-4 py-6 sm:px-6 sm:py-8 space-y-6 sm:space-y-8">
 
-        {/* ── Приветствие ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
-            Привет, {user?.name}! 👋
-          </h1>
-          <p className="mt-1 text-sm" style={{ color: 'var(--text-muted)' }}>
-            {user?.email}
-          </p>
-        </motion.div>
 
-        {/* ── Статистика ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          className="grid grid-cols-2 md:grid-cols-4 gap-4"
-        >
-          {stats.map((s, i) => (
-            <motion.div
-              key={s.label}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.05 + i * 0.05 }}
-              className="rounded-2xl p-5 text-center"
-              style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
-            >
-              <div className="text-3xl mb-2">{s.icon}</div>
-              <div className="text-3xl font-bold" style={{ color: s.color }}>
-                {s.value}
-              </div>
-              <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-                {s.label}
-              </div>
-            </motion.div>
-          ))}
-        </motion.div>
 
         {/* ── Кнопка создать игру ── */}
         <motion.div

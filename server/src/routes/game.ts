@@ -83,7 +83,6 @@ router.post('/create', requireAuth, validate(createGameSchema), async (req: Requ
     const { timerSecs, totalTours, tours } = req.body as z.infer<typeof createGameSchema>;
     const hostId = req.user!.userId;
 
-    // Проверяем доступ к темам
     const allThemeIds = tours.flatMap((t) => t.themeIds);
     const uniqueThemeIds = [...new Set(allThemeIds)];
 
@@ -93,26 +92,14 @@ router.post('/create', requireAuth, validate(createGameSchema), async (req: Requ
       return;
     }
 
-    // Проверяем, что у ведущего есть доступ ко всем темам
+    // Проверяем, что все темы существуют
     const themes = await prisma.theme.findMany({
       where: { id: { in: uniqueThemeIds } },
-      include: {
-        purchases: { where: { userId: hostId } },
-      },
     });
 
     if (themes.length !== uniqueThemeIds.length) {
       res.status(400).json({ error: 'Одна или несколько тем не найдены' });
       return;
-    }
-
-    for (const theme of themes) {
-      if (!theme.isFree && theme.purchases.length === 0) {
-        res.status(403).json({
-          error: `Тема "${theme.name}" не куплена. Приобретите её в магазине.`,
-        });
-        return;
-      }
     }
 
     const code = await uniqueCode();

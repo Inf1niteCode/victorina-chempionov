@@ -12,6 +12,8 @@ export type GameScreen =
   | 'tour-results' // промежуточный результат тура
   | 'game-results' // финал
 
+export type QuestionType = 'TEXT' | 'IMAGE' | 'AUDIO' | 'VIDEO';
+
 export interface ActiveQuestion {
   questionId: string;
   text: string;
@@ -19,6 +21,8 @@ export interface ActiveQuestion {
   points: number;
   themeName: string;
   timeLimit: number;
+  questionType: QuestionType;
+  mediaUrl?: string;
 }
 
 export interface GameState {
@@ -36,6 +40,10 @@ export interface GameState {
   // Для игрока
   myPlayerId: string | null;
   myPlayerName: string | null;
+  playerOrder: string[];           // playerId[] в порядке вступления
+  currentPicker: { playerId: string; playerName: string; playerNumber: number } | null;
+  lastCorrectAnswer: string | null; // ответ после правильного
+  wasWrong: boolean;               // этот игрок только что ответил неправильно
 
   // Активный вопрос
   activeQuestion: ActiveQuestion | null;
@@ -59,7 +67,7 @@ export interface GameState {
   // ────────────────────────────────
   setGameCode: (code: string) => void;
   setScreen: (screen: GameScreen) => void;
-  setPlayers: (players: Player[]) => void;
+  setPlayers: (players: Player[], playerOrder?: string[]) => void;
   setMyPlayer: (id: string, name: string) => void;
   setBoardThemes: (themes: BoardTheme[]) => void;
   setTour: (current: number, total: number) => void;
@@ -72,6 +80,9 @@ export interface GameState {
   setTimerPaused: (paused: boolean) => void;
   setFinalResults: (winner: Player, scores: Player[]) => void;
   setRoomError: (msg: string | null) => void;
+  setCurrentPicker: (picker: { playerId: string; playerName: string; playerNumber: number } | null) => void;
+  setLastCorrectAnswer: (answer: string | null) => void;
+  setWasWrong: (val: boolean) => void;
   resetBuzzState: () => void;
   resetBuzzForWrong: () => void;
   resetAnsweredQuestions: () => void;
@@ -92,6 +103,10 @@ export const useGameStore = create<GameState>()((set) => ({
   answeredQuestions: new Set(),
   myPlayerId: localStorage.getItem('player_id'),
   myPlayerName: localStorage.getItem('player_name'),
+  playerOrder: [],
+  currentPicker: null,
+  lastCorrectAnswer: null,
+  wasWrong: false,
   activeQuestion: null,
   buzzWinner: null,
   isBuzzBlocked: false,
@@ -104,7 +119,11 @@ export const useGameStore = create<GameState>()((set) => ({
 
   setGameCode: (code) => set({ gameCode: code }),
   setScreen: (screen) => set({ screen }),
-  setPlayers: (players) => set({ players }),
+  setPlayers: (players, playerOrder) =>
+    set((state) => ({
+      players,
+      playerOrder: playerOrder ?? state.playerOrder,
+    })),
   setMyPlayer: (id, name) => {
     localStorage.setItem('player_id', id);
     localStorage.setItem('player_name', name);
@@ -113,12 +132,18 @@ export const useGameStore = create<GameState>()((set) => ({
   setBoardThemes: (themes) => set({ boardThemes: themes }),
   setTour: (current, total) => set({ currentTour: current, totalTours: total }),
 
+  setCurrentPicker: (picker) => set({ currentPicker: picker }),
+  setLastCorrectAnswer: (answer) => set({ lastCorrectAnswer: answer }),
+  setWasWrong: (val) => set({ wasWrong: val }),
+
   setActiveQuestion: (q) =>
     set({
       activeQuestion: q,
       buzzWinner: null,
       isBuzzBlocked: false,
       hasBuzzed: false,
+      wasWrong: false,
+      lastCorrectAnswer: null,
     }),
 
   markAnswered: (questionId) =>
@@ -140,7 +165,7 @@ export const useGameStore = create<GameState>()((set) => ({
   setRoomError: (msg) => set({ roomError: msg }),
 
   resetBuzzState: () =>
-    set({ buzzWinner: null, isBuzzBlocked: false, hasBuzzed: false }),
+    set({ buzzWinner: null, isBuzzBlocked: false, hasBuzzed: false, wasWrong: false }),
 
   resetBuzzForWrong: () =>
     set({ buzzWinner: null, isBuzzBlocked: false }),
@@ -161,6 +186,10 @@ export const useGameStore = create<GameState>()((set) => ({
       answeredQuestions: new Set(),
       myPlayerId: null,
       myPlayerName: null,
+      playerOrder: [],
+      currentPicker: null,
+      lastCorrectAnswer: null,
+      wasWrong: false,
       activeQuestion: null,
       buzzWinner: null,
       isBuzzBlocked: false,

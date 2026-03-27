@@ -19,6 +19,19 @@
   --border:       #374151;
 }
 
+[data-theme="light"] {
+  --bg-deep:      #F0F4F8;
+  --bg-card:      #FFFFFF;
+  --bg-surface:   #E8EEF5;
+  --accent-gold:  #D97706;
+  --accent-blue:  #2563EB;
+  --accent-green: #059669;
+  --accent-red:   #DC2626;
+  --text-primary: #0F172A;
+  --text-muted:   #64748B;
+  --border:       #CBD5E1;
+}
+
 /* ────────────────────────────────────────────
    БАЗОВЫЕ СТИЛИ
    ──────────────────────────────────────────── */
@@ -96,6 +109,11 @@ body {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(55, 65, 81, 0.5);
+}
+
+[data-theme="light"] .glass {
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(203, 213, 225, 0.6);
 }
 
 .gold-glow {

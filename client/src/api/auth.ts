@@ -4,9 +4,9 @@ export interface AuthUser {
   id: string;
   email: string;
   name: string;
+  emailVerified: boolean;
   createdAt: string;
   isAdmin?: boolean;
-  purchases?: { themeId: string; createdAt: string }[];
   _count?: { games: number };
 }
 
@@ -39,6 +39,10 @@ export const authApi = {
   me: async (): Promise<AuthUser> => {
     const res = await api.get<{ user: AuthUser }>('/auth/me');
     return res.data.user;
+  },
+
+  changePassword: async (data: { currentPassword: string; newPassword: string }): Promise<void> => {
+    await api.patch('/auth/password', data);
   },
 
   check: async (): Promise<boolean> => {

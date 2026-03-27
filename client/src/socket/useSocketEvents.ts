@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { getSocket } from '../socket/socket';
 import { useGameStore } from '../store/gameStore';
 import type { Player } from '@victorina/shared';
+import { playSound } from '../utils/sounds';
 
 /**
  * Центральный хук подписки на Socket.io события.
@@ -25,14 +26,17 @@ export function useSocketEvents() {
     resetBuzzState,
     setHasBuzzed,
     resetAnsweredQuestions,
+    setCurrentPicker,
+    setLastCorrectAnswer,
+    setWasWrong,
   } = useGameStore();
 
   useEffect(() => {
     const socket = getSocket();
 
     // ── Лобби ──────────────────────────────────
-    socket.on('room:playerList', ({ players }) => {
-      setPlayers(players as Player[]);
+    socket.on('room:playerList', ({ players, playerOrder }) => {
+      setPlayers(players as Player[], playerOrder);
     });
 
     socket.on('room:error', ({ message }) => {
@@ -66,6 +70,7 @@ export function useSocketEvents() {
 
     socket.on('tour:end', () => {
       setScreen('tour-results');
+      playSound('tourEnd');
     });
 
     // ── Вопрос ──────────────────────────────────
@@ -77,20 +82,34 @@ export function useSocketEvents() {
         points: data.points,
         themeName: data.themeName,
         timeLimit: data.timeLimit,
+        questionType: data.questionType ?? 'TEXT',
+        mediaUrl: data.mediaUrl,
       });
       setScreen('question');
+      playSound('question');
     });
 
     socket.on('question:close', ({ questionId }) => {
       markAnswered(questionId);
       resetBuzzState();
       setHasBuzzed(false);
+      setLastCorrectAnswer(null);
       setScreen('board');
+    });
+
+    socket.on('question:picker', (data) => {
+      setCurrentPicker(data);
+    });
+
+    socket.on('question:answer', ({ answer }) => {
+      setLastCorrectAnswer(answer);
+      playSound('correct');
     });
 
     // ── Buzz ─────────────────────────────────────
     socket.on('buzz:winner', (data) => {
       setBuzzWinner(data);
+      playSound('buzz');
     });
 
     socket.on('buzz:blocked', () => {
@@ -98,6 +117,12 @@ export function useSocketEvents() {
     });
 
     socket.on('buzz:reset', () => {
+      // Если текущий игрок был победителем buzz — значит он ответил неправильно
+      const state = useGameStore.getState();
+      if (state.hasBuzzed && state.buzzWinner?.playerId === state.myPlayerId) {
+        setWasWrong(true);
+        playSound('wrong');
+      }
       resetBuzzForWrong();
     });
 
@@ -108,6 +133,7 @@ export function useSocketEvents() {
 
     socket.on('timer:end', () => {
       setTimer(0);
+      playSound('timerEnd');
     });
 
     socket.on('timer:paused', () => {
@@ -137,6 +163,8 @@ export function useSocketEvents() {
       socket.off('tour:end');
       socket.off('question:open');
       socket.off('question:close');
+      socket.off('question:picker');
+      socket.off('question:answer');
       socket.off('buzz:winner');
       socket.off('buzz:blocked');
       socket.off('buzz:reset');

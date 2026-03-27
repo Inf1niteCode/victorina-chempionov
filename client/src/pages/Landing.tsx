@@ -1118,9 +1118,6 @@ export default function Landing() {
             <Link to="/auth" style={{ color: "var(--text-muted)" }}>
               Войти
             </Link>
-            <Link to="/store" style={{ color: "var(--text-muted)" }}>
-              Магазин
-            </Link>
             <Link to="/join" style={{ color: "var(--text-muted)" }}>
               Войти в игру
             </Link>

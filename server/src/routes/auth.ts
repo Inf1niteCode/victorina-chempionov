@@ -156,13 +156,8 @@ router.get('/me', requireAuth, async (req: Request, res: Response) => {
         id: true,
         email: true,
         name: true,
+        emailVerified: true,
         createdAt: true,
-        purchases: {
-          select: {
-            themeId: true,
-            createdAt: true,
-          },
-        },
         _count: {
           select: { games: true },
         },
@@ -177,6 +172,48 @@ router.get('/me', requireAuth, async (req: Request, res: Response) => {
     res.json({ user: { ...user, isAdmin: isAdminEmail(user.email) } });
   } catch (err) {
     console.error('[auth/me]', err);
+    res.status(500).json({ error: 'Внутренняя ошибка сервера' });
+  }
+});
+
+// ────────────────────────────────────────────
+// PATCH /api/auth/password — смена пароля
+// ────────────────────────────────────────────
+
+router.patch('/password', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { currentPassword, newPassword } = req.body as {
+      currentPassword: string;
+      newPassword: string;
+    };
+
+    if (!currentPassword || !newPassword) {
+      res.status(400).json({ error: 'Укажите текущий и новый пароль' });
+      return;
+    }
+    if (newPassword.length < 6) {
+      res.status(400).json({ error: 'Новый пароль минимум 6 символов' });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: req.user!.userId } });
+    if (!user) {
+      res.status(404).json({ error: 'Пользователь не найден' });
+      return;
+    }
+
+    const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!isValid) {
+      res.status(401).json({ error: 'Неверный текущий пароль' });
+      return;
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await prisma.user.update({ where: { id: user.id }, data: { passwordHash } });
+
+    res.json({ message: 'Пароль успешно изменён' });
+  } catch (err) {
+    console.error('[auth/password]', err);
     res.status(500).json({ error: 'Внутренняя ошибка сервера' });
   }
 });

@@ -12,6 +12,7 @@ export function registerBuzzHandlers(io: Server, socket: Socket): void {
       if (room.buzzed.size === 0) {
         // Первый нажавший — победитель
         room.buzzed.add(playerId);
+        room.activeBuzzWinner = { playerId, playerName };
         io.to(code).emit('buzz:winner', { playerId, playerName });
         console.log(`[buzz:winner] "${playerName}" in room ${code}`);
       } else {

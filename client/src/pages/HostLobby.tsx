@@ -31,6 +31,8 @@ export default function HostLobby() {
   useEffect(() => {
     if (!code) return;
 
+    let cleanup: (() => void) | null = null;
+
     const loadAndConnect = async () => {
       try {
         const res = await fetch(`/api/game/${code}`, { credentials: 'include' });
@@ -44,16 +46,22 @@ export default function HostLobby() {
         setGameCode(code);
         setTour(game.currentTour, game.totalTours);
 
-        // Подключаем ведущего к Socket.io комнате
         connectSocket();
         const socket = getSocket();
 
-        socket.emit('room:create', {
-          code,
-          gameId: game.id,
-          timerSecs: game.timerSecs,
-          totalTours: game.totalTours,
-        });
+        // Re-emit room:create on every reconnect so room survives server restarts
+        const createRoom = () => {
+          socket.emit('room:create', {
+            code,
+            gameId: game.id,
+            timerSecs: game.timerSecs,
+            totalTours: game.totalTours,
+          });
+        };
+
+        socket.on('connect', createRoom);
+        if (socket.connected) createRoom();
+        cleanup = () => socket.off('connect', createRoom);
       } catch (err) {
         console.error('Ошибка загрузки игры:', err);
         setRoomError('Не удалось загрузить игру');
@@ -61,6 +69,7 @@ export default function HostLobby() {
     };
 
     loadAndConnect();
+    return () => { cleanup?.(); };
   }, [code]);
 
   // ── Старт игры ──────────────────────────────
@@ -365,25 +374,6 @@ export default function HostLobby() {
               )}
             </div>
           </motion.div>
-
-          {/* Ошибка */}
-          <AnimatePresence>
-            {roomError && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="rounded-xl px-4 py-3 text-sm"
-                style={{
-                  background: 'rgba(239,68,68,0.12)',
-                  border: '1px solid rgba(239,68,68,0.3)',
-                  color: 'var(--accent-red)',
-                }}
-              >
-                {roomError}
-              </motion.div>
-            )}
-          </AnimatePresence>
 
           {/* Кнопка старта */}
           <motion.button

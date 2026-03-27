@@ -1,9 +1,6 @@
 import api from './client';
 
-export interface AdminSettings {
-  themePrice: number;    // копейки
-  bundleDiscount: number; // процент
-}
+export type QuestionType = 'TEXT' | 'IMAGE' | 'AUDIO' | 'VIDEO';
 
 export interface AdminQuestion {
   id: string;
@@ -11,13 +8,14 @@ export interface AdminQuestion {
   answer: string;
   points: number;
   themeId: string;
+  questionType: QuestionType;
+  mediaUrl?: string;
 }
 
 export interface AdminTheme {
   id: string;
   name: string;
   category: string;
-  isFree: boolean;
   questions: AdminQuestion[];
 }
 
@@ -27,12 +25,12 @@ export const adminApi = {
     return res.data.themes;
   },
 
-  createTheme: async (data: { name: string; category: string; isFree: boolean }): Promise<AdminTheme> => {
+  createTheme: async (data: { name: string; category: string }): Promise<AdminTheme> => {
     const res = await api.post<{ theme: AdminTheme }>('/admin/themes', data);
     return res.data.theme;
   },
 
-  updateTheme: async (id: string, data: { name?: string; category?: string; isFree?: boolean }): Promise<AdminTheme> => {
+  updateTheme: async (id: string, data: { name?: string; category?: string }): Promise<AdminTheme> => {
     const res = await api.patch<{ theme: AdminTheme }>(`/admin/themes/${id}`, data);
     return res.data.theme;
   },
@@ -41,27 +39,17 @@ export const adminApi = {
     await api.delete(`/admin/themes/${id}`);
   },
 
-  createQuestion: async (themeId: string, data: { text: string; answer: string; points: number }): Promise<AdminQuestion> => {
+  createQuestion: async (themeId: string, data: { text: string; answer: string; points: number; questionType?: QuestionType; mediaUrl?: string }): Promise<AdminQuestion> => {
     const res = await api.post<{ question: AdminQuestion }>(`/admin/themes/${themeId}/questions`, data);
     return res.data.question;
   },
 
-  updateQuestion: async (id: string, data: { text?: string; answer?: string; points?: number }): Promise<AdminQuestion> => {
+  updateQuestion: async (id: string, data: { text?: string; answer?: string; points?: number; questionType?: QuestionType; mediaUrl?: string }): Promise<AdminQuestion> => {
     const res = await api.patch<{ question: AdminQuestion }>(`/admin/questions/${id}`, data);
     return res.data.question;
   },
 
   deleteQuestion: async (id: string): Promise<void> => {
     await api.delete(`/admin/questions/${id}`);
-  },
-
-  getSettings: async (): Promise<AdminSettings> => {
-    const res = await api.get<AdminSettings>('/admin/settings');
-    return res.data;
-  },
-
-  updateSettings: async (data: { themePrice?: number; bundleDiscount?: number }): Promise<AdminSettings> => {
-    const res = await api.patch<AdminSettings>('/admin/settings', data);
-    return res.data;
   },
 };

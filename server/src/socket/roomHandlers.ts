@@ -20,6 +20,16 @@ export function getPlayerList(room: RoomState) {
   }));
 }
 
+/** Текущий выбирающий игрок (по кругу) */
+export function getCurrentPicker(room: RoomState): { playerId: string; playerName: string; playerNumber: number } | null {
+  if (room.playerOrder.length === 0) return null;
+  const idx = room.currentPickerIndex % room.playerOrder.length;
+  const playerId = room.playerOrder[idx];
+  const player = room.players.get(playerId);
+  if (!player) return null;
+  return { playerId, playerName: player.name, playerNumber: idx + 1 };
+}
+
 // ────────────────────────────────────────────
 // room:create — ведущий создаёт комнату
 // ────────────────────────────────────────────
@@ -61,7 +71,7 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
           socket.join(code);
           socket.join(`${code}:host`);
 
-          socket.emit('room:playerList', { players: getPlayerList(existing) });
+          socket.emit('room:playerList', { players: getPlayerList(existing), playerOrder: existing.playerOrder });
           console.log(`[room:create] Host reconnected to room ${code}`);
           return;
         }
@@ -80,6 +90,10 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
           buzzed: new Set(),
           penalizedPlayers: new Set(),
           status: 'LOBBY',
+          playerOrder: [],
+          currentPickerIndex: 0,
+          lastCorrectPlayerId: null,
+          activeBuzzWinner: null,
         };
 
         createRoom(roomState);
@@ -159,6 +173,7 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
         };
 
         room.players.set(player.id, roomPlayer);
+        room.playerOrder.push(player.id);
 
         // socketId → code для быстрого поиска
         const { registerSocket } = await import('./roomStore');
@@ -167,8 +182,8 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
         // Присоединяем к Socket.io комнате
         socket.join(code);
 
-        // Сообщаем всем об обновлённом списке
-        io.to(code).emit('room:playerList', { players: getPlayerList(room) });
+        // Сообщаем всем об обновлённом списке (с порядком)
+        io.to(code).emit('room:playerList', { players: getPlayerList(room), playerOrder: room.playerOrder });
 
         // Уведомляем остальных о новом игроке
         socket.to(code).emit('room:playerJoined', { playerName: trimmedName });
@@ -197,7 +212,7 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
   socket.on('room:getPlayers', (data: { code: string }) => {
     const room = getRoom(data.code);
     if (!room) return;
-    socket.emit('room:playerList', { players: getPlayerList(room) });
+    socket.emit('room:playerList', { players: getPlayerList(room), playerOrder: room.playerOrder });
   });
 
   // ────────────────────────────────────────────
@@ -247,8 +262,8 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
       totalTours: room.totalTours,
     });
 
-    // Актуальный список игроков
-    socket.emit('room:playerList', { players: getPlayerList(room) });
+    // Актуальный список игроков (с порядком)
+    socket.emit('room:playerList', { players: getPlayerList(room), playerOrder: room.playerOrder });
 
     // Если идёт вопрос — отправляем его игроку
     if (room.activeQuestion) {
@@ -260,7 +275,29 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
         points: aq.points,
         themeName: aq.themeName,
         timeLimit: aq.timeLimit,
+        questionType: aq.questionType,
+        mediaUrl: aq.mediaUrl,
       });
+
+      // Восстанавливаем buzz-состояние после реконнекта
+      if (room.activeBuzzWinner) {
+        if (room.activeBuzzWinner.playerId === playerId) {
+          // Этот игрок сам победил в buzz
+          socket.emit('buzz:winner', room.activeBuzzWinner);
+        } else if (room.buzzed.has(playerId)) {
+          // Этот игрок уже нажимал, но опоздал
+          socket.emit('buzz:blocked');
+        } else {
+          // Кто-то другой выиграл buzz
+          socket.emit('buzz:winner', room.activeBuzzWinner);
+        }
+      }
+    }
+
+    // Если нет активного вопроса — отправляем picker
+    if (!room.activeQuestion) {
+      const picker = getCurrentPicker(room);
+      if (picker) socket.emit('question:picker', picker);
     }
 
     console.log(`[room:rejoinPlayer] "${playerName}" rejoined room ${code}`);
@@ -284,7 +321,7 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
     registerSocket(socket.id, code);
 
     // Отправляем текущий список игроков
-    socket.emit('room:playerList', { players: getPlayerList(room) });
+    socket.emit('room:playerList', { players: getPlayerList(room), playerOrder: room.playerOrder });
 
     // Если игра уже активна — синхронизируем состояние
     if (room.status === 'ACTIVE') {
@@ -338,7 +375,13 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
             points: aq.points,
             themeName: aq.themeName,
             timeLimit: aq.timeLimit,
+            questionType: aq.questionType,
+            mediaUrl: aq.mediaUrl,
           });
+        } else {
+          // Нет активного вопроса — отправляем кто сейчас выбирает
+          const picker = getCurrentPicker(room);
+          if (picker) socket.emit('question:picker', picker);
         }
       } catch (err) {
         console.error('[room:joinDisplay]', err);

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link } from 'react-router-dom';
 import type { ThemeInfo } from '../../api/themes';
 
 const CATEGORY_ORDER = [
@@ -34,8 +33,6 @@ const CATEGORY_ICONS: Record<string, string> = {
 
 const LS_KEY = 'theme_favorites';
 
-type FilterMode = 'all' | 'purchased' | 'favorites';
-
 interface Props {
   tourNumber: number;
   themes: ThemeInfo[];
@@ -53,7 +50,9 @@ export default function ThemePicker({
 }: Props) {
   const MAX = 5;
 
-  const [filter, setFilter] = useState<FilterMode>('all');
+  const [search, setSearch] = useState('');
+  const [catFilter, setCatFilter] = useState<string>('');
+  const [showFavOnly, setShowFavOnly] = useState(false);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [favorites, setFavorites] = useState<Set<string>>(() => {
     try {
@@ -64,7 +63,6 @@ export default function ThemePicker({
     }
   });
 
-  // Синхронизируем favorites → localStorage
   useEffect(() => {
     localStorage.setItem(LS_KEY, JSON.stringify([...favorites]));
   }, [favorites]);
@@ -78,8 +76,7 @@ export default function ThemePicker({
     });
   };
 
-  const toggle = (themeId: string, accessible: boolean) => {
-    if (!accessible) return;
+  const toggle = (themeId: string) => {
     if (usedInOtherTours.includes(themeId)) return;
     if (selected.includes(themeId)) {
       onChange(selected.filter((id) => id !== themeId));
@@ -90,97 +87,123 @@ export default function ThemePicker({
   };
 
   // Фильтрация
+  const searchLower = search.trim().toLowerCase();
   const visibleThemes = themes.filter((t) => {
-    if (filter === 'purchased') return t.isPurchased;
-    if (filter === 'favorites') return favorites.has(t.id);
+    if (showFavOnly && !favorites.has(t.id)) return false;
+    if (catFilter && t.category !== catFilter) return false;
+    if (searchLower && !t.name.toLowerCase().includes(searchLower)) return false;
     return true;
   });
+
+  // Доступные категории с учётом фильтра избранных
+  const availableCategories = CATEGORY_ORDER.filter((cat) =>
+    themes.some((t) => {
+      if (showFavOnly && !favorites.has(t.id)) return false;
+      return t.category === cat;
+    })
+  );
 
   const grouped = CATEGORY_ORDER.map((cat) => ({
     cat,
     themes: visibleThemes.filter((t) => t.category === cat),
   })).filter((g) => g.themes.length > 0);
 
-  const FILTERS: { mode: FilterMode; label: string; icon: string }[] = [
-    { mode: 'all',       label: 'Все темы',   icon: '🗂️' },
-    { mode: 'purchased', label: 'Купленные',  icon: '✅' },
-    { mode: 'favorites', label: 'Избранные',  icon: '⭐' },
-  ];
-
   return (
     <div className="space-y-5">
 
-      {/* Прогресс */}
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
-          Тур {tourNumber} — выберите ровно 5 тем
-        </span>
-        <span
-          className="text-sm font-bold px-3 py-1 rounded-full"
+      {/* ── Поиск ── */}
+      <div className="relative">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm pointer-events-none" style={{ color: 'var(--text-muted)' }}>🔍</span>
+        <input
+          type="text"
+          placeholder="Поиск по названию..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full pl-9 pr-3 py-2 rounded-xl text-sm outline-none"
           style={{
-            background: selected.length === MAX
-              ? 'rgba(16,185,129,0.15)'
-              : 'rgba(245,158,11,0.15)',
-            color: selected.length === MAX
-              ? 'var(--accent-green)'
-              : 'var(--accent-gold)',
-            border: `1px solid ${selected.length === MAX
-              ? 'rgba(16,185,129,0.3)'
-              : 'rgba(245,158,11,0.3)'}`,
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border)',
+            color: 'var(--text-primary)',
           }}
-        >
-          {selected.length} / {MAX}
-        </span>
-      </div>
-
-      {/* Полоса прогресса */}
-      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-surface)' }}>
-        <motion.div
-          className="h-full rounded-full"
-          style={{
-            background: selected.length === MAX ? 'var(--accent-green)' : 'var(--accent-gold)',
-          }}
-          animate={{ width: `${(selected.length / MAX) * 100}%` }}
-          transition={{ type: 'spring', stiffness: 200, damping: 20 }}
         />
       </div>
 
-      {/* ── Фильтры ── */}
+      {/* ── Фильтр избранных ── */}
       <div className="flex gap-2">
-        {FILTERS.map(({ mode, label, icon }) => {
-          const active = filter === mode;
-          const count =
-            mode === 'purchased'
-              ? themes.filter((t) => t.isPurchased).length
-              : mode === 'favorites'
-              ? favorites.size
-              : themes.length;
-          return (
-            <button
-              key={mode}
-              onClick={() => setFilter(mode)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all flex-shrink-0"
-              style={{
-                background: active ? 'rgba(59,130,246,0.15)' : 'var(--bg-surface)',
-                color: active ? 'var(--accent-blue)' : 'var(--text-muted)',
-                border: `1px solid ${active ? 'rgba(59,130,246,0.4)' : 'var(--border)'}`,
-              }}
-            >
-              <span>{icon}</span>
-              <span>{label}</span>
-              <span
-                className="px-1.5 py-0.5 rounded-full text-xs"
+        <button
+          onClick={() => { setShowFavOnly(false); setCatFilter(''); }}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all hover:opacity-80 flex-shrink-0"
+          style={{
+            background: !showFavOnly ? 'rgba(59,130,246,0.15)' : 'var(--bg-surface)',
+            color: !showFavOnly ? 'var(--accent-blue)' : 'var(--text-muted)',
+            border: `1px solid ${!showFavOnly ? 'rgba(59,130,246,0.4)' : 'var(--border)'}`,
+          }}
+        >
+          <span>🗂️</span>
+          <span>Все темы</span>
+          <span className="px-1.5 py-0.5 rounded-full text-xs"
+            style={{
+              background: !showFavOnly ? 'rgba(59,130,246,0.2)' : 'var(--bg-card)',
+              color: !showFavOnly ? 'var(--accent-blue)' : 'var(--text-muted)',
+            }}>
+            {themes.length}
+          </span>
+        </button>
+        <button
+          onClick={() => { setShowFavOnly(true); setCatFilter(''); }}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all hover:opacity-80 flex-shrink-0"
+          style={{
+            background: showFavOnly ? 'rgba(59,130,246,0.15)' : 'var(--bg-surface)',
+            color: showFavOnly ? 'var(--accent-blue)' : 'var(--text-muted)',
+            border: `1px solid ${showFavOnly ? 'rgba(59,130,246,0.4)' : 'var(--border)'}`,
+          }}
+        >
+          <span>⭐</span>
+          <span>Избранные</span>
+          <span className="px-1.5 py-0.5 rounded-full text-xs"
+            style={{
+              background: showFavOnly ? 'rgba(59,130,246,0.2)' : 'var(--bg-card)',
+              color: showFavOnly ? 'var(--accent-blue)' : 'var(--text-muted)',
+            }}>
+            {favorites.size}
+          </span>
+        </button>
+      </div>
+
+      {/* ── Категории (фильтр) ── */}
+      {availableCategories.length > 0 && (
+        <div className="flex gap-1.5 flex-wrap">
+          <button
+            onClick={() => setCatFilter('')}
+            className="px-2.5 py-1 rounded-xl text-xs font-medium transition-all hover:opacity-80"
+            style={{
+              background: !catFilter ? 'rgba(59,130,246,0.15)' : 'var(--bg-surface)',
+              color: !catFilter ? 'var(--accent-blue)' : 'var(--text-muted)',
+              border: `1px solid ${!catFilter ? 'rgba(59,130,246,0.4)' : 'var(--border)'}`,
+            }}
+          >
+            Все
+          </button>
+          {availableCategories.map((cat) => {
+            const active = catFilter === cat;
+            return (
+              <button
+                key={cat}
+                onClick={() => setCatFilter(active ? '' : cat)}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-medium transition-all hover:opacity-80"
                 style={{
-                  background: active ? 'rgba(59,130,246,0.2)' : 'var(--bg-card)',
+                  background: active ? 'rgba(59,130,246,0.15)' : 'var(--bg-surface)',
                   color: active ? 'var(--accent-blue)' : 'var(--text-muted)',
+                  border: `1px solid ${active ? 'rgba(59,130,246,0.4)' : 'var(--border)'}`,
                 }}
               >
-                {count}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+                <span>{CATEGORY_ICONS[cat]}</span>
+                <span>{cat}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Пустое состояние */}
       {grouped.length === 0 && (
@@ -188,32 +211,13 @@ export default function ThemePicker({
           className="rounded-xl px-4 py-8 text-center"
           style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
         >
-          <div className="text-3xl mb-2">
-            {filter === 'favorites' ? '⭐' : '🔒'}
-          </div>
+          <div className="text-3xl mb-2">⭐</div>
           <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-            {filter === 'favorites'
-              ? 'Нет избранных тем'
-              : 'Нет купленных тем'}
+            Нет избранных тем
           </p>
           <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-            {filter === 'favorites'
-              ? 'Нажмите ☆ на теме, чтобы добавить в избранное'
-              : 'Перейдите в магазин, чтобы купить темы'}
+            Нажмите ☆ на теме, чтобы добавить в избранное
           </p>
-          {filter === 'purchased' && (
-            <Link
-              to="/store"
-              className="inline-block mt-3 text-xs px-4 py-1.5 rounded-xl transition-all"
-              style={{
-                background: 'rgba(245,158,11,0.15)',
-                color: 'var(--accent-gold)',
-                border: '1px solid rgba(245,158,11,0.3)',
-              }}
-            >
-              🛒 В магазин
-            </Link>
-          )}
         </div>
       )}
 
@@ -260,15 +264,18 @@ export default function ThemePicker({
             {catThemes.map((theme) => {
               const isSelected = selected.includes(theme.id);
               const isUsedElsewhere = usedInOtherTours.includes(theme.id);
-              const accessible = theme.isPurchased;
-              const disabled = isUsedElsewhere || !accessible;
-              const canSelect = !disabled && (isSelected || selected.length < MAX);
+              const canSelect = !isUsedElsewhere && (isSelected || selected.length < MAX);
               const isFav = favorites.has(theme.id);
 
               return (
                 <motion.button
                   key={theme.id}
-                  onClick={() => toggle(theme.id, accessible && !isUsedElsewhere)}
+                  onClick={() => toggle(theme.id)}
+                  whileHover={canSelect ? {
+                    backgroundColor: isSelected ? 'rgba(59,130,246,0.25)' : 'rgba(59,130,246,0.07)',
+                    boxShadow: '0 0 0 1px rgba(59,130,246,0.4)',
+                    transition: { duration: 0.15 },
+                  } : {}}
                   whileTap={canSelect ? { scale: 0.97 } : {}}
                   className="relative flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all"
                   style={{
@@ -276,8 +283,6 @@ export default function ThemePicker({
                       ? 'rgba(59,130,246,0.15)'
                       : isUsedElsewhere
                       ? 'rgba(55,65,81,0.3)'
-                      : !accessible
-                      ? 'rgba(55,65,81,0.2)'
                       : selected.length >= MAX && !isSelected
                       ? 'rgba(55,65,81,0.2)'
                       : 'var(--bg-surface)',
@@ -288,7 +293,7 @@ export default function ThemePicker({
                         ? 'transparent'
                         : 'var(--border)'
                     }`,
-                    cursor: disabled || (selected.length >= MAX && !isSelected)
+                    cursor: isUsedElsewhere || (selected.length >= MAX && !isSelected)
                       ? 'not-allowed'
                       : 'pointer',
                     opacity: isUsedElsewhere ? 0.4 : 1,
@@ -303,7 +308,7 @@ export default function ThemePicker({
                       color: isSelected ? '#fff' : 'var(--text-muted)',
                     }}
                   >
-                    {isSelected ? '✓' : !accessible ? '🔒' : ''}
+                    {isSelected ? '✓' : ''}
                   </div>
 
                   {/* Название */}
@@ -313,18 +318,13 @@ export default function ThemePicker({
                       style={{
                         color: isSelected
                           ? 'var(--accent-blue)'
-                          : !accessible || isUsedElsewhere
+                          : isUsedElsewhere
                           ? 'var(--text-muted)'
                           : 'var(--text-primary)',
                       }}
                     >
                       {theme.name}
                     </div>
-                    {!accessible && (
-                      <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                        100 ₽
-                      </div>
-                    )}
                     {isUsedElsewhere && (
                       <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
                         Уже в другом туре
@@ -341,22 +341,6 @@ export default function ThemePicker({
                   >
                     {isFav ? '★' : '☆'}
                   </button>
-
-                  {/* Кнопка купить */}
-                  {!accessible && (
-                    <Link
-                      to="/store"
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-xs px-2 py-1 rounded-lg flex-shrink-0 transition-all"
-                      style={{
-                        background: 'rgba(245,158,11,0.15)',
-                        color: 'var(--accent-gold)',
-                        border: '1px solid rgba(245,158,11,0.3)',
-                      }}
-                    >
-                      Купить
-                    </Link>
-                  )}
                 </motion.button>
               );
             })}

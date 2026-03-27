@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { adminApi, AdminTheme, AdminQuestion, AdminSettings } from '../api/admin';
+import { adminApi, AdminTheme, AdminQuestion, QuestionType } from '../api/admin';
 
 const POINTS = [100, 200, 300, 400, 500] as const;
 
@@ -15,14 +15,20 @@ type QuestionModal =
   | { mode: 'edit'; themeId: string; question: AdminQuestion };
 
 // ── Начальные значения форм ───────────────────
-const emptyTheme = { name: '', category: '', isFree: true };
-const emptyQuestion = { text: '', answer: '', points: 100 as number };
+const emptyTheme = { name: '', category: '' };
+const emptyQuestion = { text: '', answer: '', points: 100 as number, questionType: 'TEXT' as QuestionType, mediaUrl: '' };
+
+const QUESTION_TYPES: { type: QuestionType; label: string; icon: string }[] = [
+  { type: 'TEXT',  label: 'Текст',    icon: '📝' },
+  { type: 'IMAGE', label: 'Картинка', icon: '🖼' },
+  { type: 'AUDIO', label: 'Звук',     icon: '🎵' },
+  { type: 'VIDEO', label: 'Видео',    icon: '🎬' },
+];
 
 interface ImportEntry {
   name: string;
   category: string;
-  isFree: boolean;
-  questions: { points: number; text: string; answer: string }[];
+  questions: { points: number; text: string; answer: string; questionType?: QuestionType; mediaUrl?: string }[];
 }
 
 export default function Admin() {
@@ -37,12 +43,6 @@ export default function Admin() {
   // Модалки
   const [themeModal, setThemeModal] = useState<ThemeModal | null>(null);
   const [questionModal, setQuestionModal] = useState<QuestionModal | null>(null);
-
-  // Настройки цен
-  const [settings, setSettings] = useState<AdminSettings | null>(null);
-  const [priceInput, setPriceInput] = useState('');
-  const [discountInput, setDiscountInput] = useState('');
-  const [savingPrice, setSavingPrice] = useState(false);
 
   // Импорт
   const [importOpen, setImportOpen] = useState(false);
@@ -59,13 +59,8 @@ export default function Admin() {
 
   // ── Загрузка ─────────────────────────────────
   useEffect(() => {
-    Promise.all([adminApi.getThemes(), adminApi.getSettings()])
-      .then(([t, s]) => {
-        setThemes(t);
-        setSettings(s);
-        setPriceInput(String(s.themePrice / 100));
-        setDiscountInput(String(s.bundleDiscount));
-      })
+    adminApi.getThemes()
+      .then(setThemes)
       .catch(() => setError('Нет доступа или ошибка загрузки'))
       .finally(() => setLoading(false));
   }, []);
@@ -89,7 +84,7 @@ export default function Admin() {
   };
 
   const openEditTheme = (theme: AdminTheme) => {
-    setThemeForm({ name: theme.name, category: theme.category, isFree: theme.isFree });
+    setThemeForm({ name: theme.name, category: theme.category });
     setFormError('');
     setThemeModal({ mode: 'edit', theme });
   };
@@ -101,7 +96,7 @@ export default function Admin() {
   };
 
   const openEditQuestion = (themeId: string, question: AdminQuestion) => {
-    setQuestionForm({ text: question.text, answer: question.answer, points: question.points });
+    setQuestionForm({ text: question.text, answer: question.answer, points: question.points, questionType: question.questionType ?? 'TEXT', mediaUrl: question.mediaUrl ?? '' });
     setFormError('');
     setQuestionModal({ mode: 'edit', themeId, question });
   };
@@ -188,20 +183,6 @@ export default function Admin() {
     }
   };
 
-  // ── Сохранение цены ───────────────────────────
-  const savePrice = async () => {
-    const price = parseFloat(priceInput);
-    const discount = parseFloat(discountInput);
-    if (isNaN(price) || price <= 0 || isNaN(discount) || discount < 0 || discount > 99) return;
-    setSavingPrice(true);
-    try {
-      const s = await adminApi.updateSettings({ themePrice: price, bundleDiscount: discount });
-      setSettings(s);
-    } finally {
-      setSavingPrice(false);
-    }
-  };
-
   // ── Импорт ────────────────────────────────────
   const handleImport = async () => {
     setImportError('');
@@ -226,19 +207,22 @@ export default function Admin() {
         const theme = await adminApi.createTheme({
           name: entry.name,
           category: entry.category,
-          isFree: entry.isFree,
         });
         log.push(`✓ Тема "${entry.name}"`);
         setImportLog([...log]);
         for (const q of entry.questions || []) {
           try {
+            const validTypes: QuestionType[] = ['TEXT', 'IMAGE', 'AUDIO', 'VIDEO'];
             const question = await adminApi.createQuestion(theme.id, {
               text: q.text,
               answer: q.answer,
               points: q.points,
+              questionType: q.questionType && validTypes.includes(q.questionType) ? q.questionType : 'TEXT',
+              mediaUrl: q.mediaUrl || undefined,
             });
             theme.questions = [...(theme.questions || []), question];
-            log.push(`  ✓ ${q.points} — ${q.text.slice(0, 40)}...`);
+            const typeIcon = { TEXT: '📝', IMAGE: '🖼', AUDIO: '🎵', VIDEO: '🎬' }[question.questionType] ?? '📝';
+            log.push(`  ✓ ${typeIcon} ${q.points} — ${q.text.slice(0, 40)}`);
           } catch {
             log.push(`  ✗ Ошибка вопроса ${q.points}`);
           }
@@ -331,63 +315,6 @@ export default function Admin() {
           )}
         </AnimatePresence>
 
-        {/* Настройка цен */}
-        {settings && (
-          <div className="rounded-2xl p-5"
-            style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-            <h3 className="text-sm font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
-              Цены
-            </h3>
-            <div className="flex flex-wrap gap-4 items-end">
-              <div>
-                <label className="text-xs font-medium block mb-1" style={{ color: 'var(--text-muted)' }}>
-                  Цена за тему (₽)
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  value={priceInput}
-                  onChange={(e) => setPriceInput(e.target.value)}
-                  className="w-32 px-3 py-2 rounded-xl text-sm outline-none"
-                  style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium block mb-1" style={{ color: 'var(--text-muted)' }}>
-                  Скидка на набор (%)
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  max={99}
-                  value={discountInput}
-                  onChange={(e) => setDiscountInput(e.target.value)}
-                  className="w-28 px-3 py-2 rounded-xl text-sm outline-none"
-                  style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                  Тема: <span style={{ color: 'var(--accent-gold)' }}>{parseFloat(priceInput) || 0} ₽</span>
-                  &nbsp;·&nbsp;Набор: <span style={{ color: 'var(--accent-green)' }}>
-                    {Math.round((parseFloat(priceInput) || 0) * (1 - (parseFloat(discountInput) || 0) / 100))} ₽/тему
-                  </span>
-                </p>
-                <button
-                  onClick={savePrice}
-                  disabled={savingPrice}
-                  className="px-4 py-2 rounded-xl text-sm font-bold transition-all"
-                  style={{
-                    background: savingPrice ? 'var(--bg-surface)' : 'linear-gradient(135deg, var(--accent-gold) 0%, #f97316 100%)',
-                    color: savingPrice ? 'var(--text-muted)' : '#07090F',
-                  }}>
-                  {savingPrice ? 'Сохраняем...' : 'Сохранить'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Фильтр по категориям */}
         <div className="flex gap-2 flex-wrap">
           <button
@@ -454,14 +381,6 @@ export default function Admin() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>
                             {theme.name}
-                          </span>
-                          <span className="text-xs px-1.5 py-0.5 rounded-full"
-                            style={{
-                              background: theme.isFree ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)',
-                              color: theme.isFree ? 'var(--accent-green)' : 'var(--accent-gold)',
-                              border: `1px solid ${theme.isFree ? 'rgba(16,185,129,0.3)' : 'rgba(245,158,11,0.3)'}`,
-                            }}>
-                            {theme.isFree ? 'Бесплатно' : '100 ₽'}
                           </span>
                         </div>
                         <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
@@ -592,7 +511,7 @@ export default function Admin() {
                 value={importText}
                 onChange={(e) => setImportText(e.target.value)}
                 disabled={importing}
-                placeholder={`[\n  {\n    name: 'Деревья',\n    category: 'РАСТЕНИЯ',\n    isFree: false,\n    questions: [\n      { points: 100, text: '...', answer: '...' },\n    ],\n  },\n]`}
+                placeholder={`[\n  {\n    name: 'Деревья',\n    category: 'РАСТЕНИЯ',\n    questions: [\n      { points: 100, text: 'Вопрос', answer: 'Ответ' },\n      { points: 200, text: 'Что изображено?', answer: 'Ответ', questionType: 'IMAGE', mediaUrl: 'https://...' },\n      { points: 300, text: 'Угадайте мелодию', answer: 'Ответ', questionType: 'AUDIO', mediaUrl: 'https://...' },\n      { points: 400, text: 'Что за фильм?', answer: 'Ответ', questionType: 'VIDEO', mediaUrl: 'https://youtube.com/watch?v=...' },\n    ],\n  },\n]`}
                 rows={14}
                 className="w-full px-3 py-2.5 rounded-xl text-xs outline-none resize-none font-mono"
                 style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
@@ -705,33 +624,6 @@ export default function Admin() {
                 </p>
               </div>
 
-              {/* Бесплатно / Платно */}
-              <div>
-                <label className="text-xs font-medium block mb-2" style={{ color: 'var(--text-muted)' }}>
-                  Доступность
-                </label>
-                <div className="flex gap-2">
-                  {[true, false].map((v) => (
-                    <button key={String(v)}
-                      onClick={() => setThemeForm((p) => ({ ...p, isFree: v }))}
-                      className="flex-1 py-2 rounded-xl text-sm font-medium transition-all"
-                      style={{
-                        background: themeForm.isFree === v
-                          ? (v ? 'rgba(16,185,129,0.15)' : 'rgba(245,158,11,0.15)')
-                          : 'var(--bg-surface)',
-                        color: themeForm.isFree === v
-                          ? (v ? 'var(--accent-green)' : 'var(--accent-gold)')
-                          : 'var(--text-muted)',
-                        border: `1px solid ${themeForm.isFree === v
-                          ? (v ? 'rgba(16,185,129,0.35)' : 'rgba(245,158,11,0.35)')
-                          : 'var(--border)'}`,
-                      }}>
-                      {v ? '🎁 Бесплатно' : '💰 Платно (100 ₽)'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {formError && (
                 <p className="text-xs" style={{ color: 'var(--accent-red)' }}>{formError}</p>
               )}
@@ -800,15 +692,53 @@ export default function Admin() {
                 </div>
               </div>
 
+              {/* Тип вопроса */}
+              <div>
+                <label className="text-xs font-medium block mb-1" style={{ color: 'var(--text-muted)' }}>
+                  Тип вопроса
+                </label>
+                <div className="flex gap-2">
+                  {QUESTION_TYPES.map(({ type, label, icon }) => (
+                    <button key={type}
+                      onClick={() => setQuestionForm((p) => ({ ...p, questionType: type, mediaUrl: type === 'TEXT' ? '' : p.mediaUrl }))}
+                      className="flex-1 py-2 rounded-xl text-xs font-bold transition-all flex flex-col items-center gap-0.5"
+                      style={{
+                        background: questionForm.questionType === type ? 'rgba(59,130,246,0.15)' : 'var(--bg-surface)',
+                        color: questionForm.questionType === type ? 'var(--accent-blue)' : 'var(--text-muted)',
+                        border: `1px solid ${questionForm.questionType === type ? 'rgba(59,130,246,0.4)' : 'var(--border)'}`,
+                      }}>
+                      <span>{icon}</span>
+                      <span>{label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* URL медиа (для IMAGE/AUDIO/VIDEO) */}
+              {questionForm.questionType !== 'TEXT' && (
+                <div>
+                  <label className="text-xs font-medium block mb-1" style={{ color: 'var(--text-muted)' }}>
+                    {questionForm.questionType === 'IMAGE' ? 'URL картинки' : questionForm.questionType === 'AUDIO' ? 'URL аудио' : 'URL видео (или YouTube)'}
+                  </label>
+                  <input
+                    value={questionForm.mediaUrl}
+                    onChange={(e) => setQuestionForm((p) => ({ ...p, mediaUrl: e.target.value }))}
+                    placeholder={questionForm.questionType === 'VIDEO' ? 'https://youtube.com/watch?v=...' : 'https://...'}
+                    className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+                    style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
+                  />
+                </div>
+              )}
+
               {/* Вопрос */}
               <div>
                 <label className="text-xs font-medium block mb-1" style={{ color: 'var(--text-muted)' }}>
-                  Текст вопроса
+                  {questionForm.questionType === 'TEXT' ? 'Текст вопроса' : 'Подсказка / описание (необязательно)'}
                 </label>
                 <textarea
                   value={questionForm.text}
                   onChange={(e) => setQuestionForm((p) => ({ ...p, text: e.target.value }))}
-                  placeholder="Введите текст вопроса..."
+                  placeholder={questionForm.questionType === 'TEXT' ? 'Введите текст вопроса...' : 'Например: «Угадайте мелодию» или «Что изображено?»'}
                   rows={3}
                   className="w-full px-3 py-2.5 rounded-xl text-sm outline-none resize-none"
                   style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}

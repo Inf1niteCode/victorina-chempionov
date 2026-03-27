@@ -21,6 +21,7 @@ export default function GameDisplay() {
     screen, players, boardThemes, answeredQuestions,
     activeQuestion, buzzWinner, timerSeconds, timerPaused,
     currentTour, totalTours, finalScores, winner, setGameCode,
+    lastCorrectAnswer, currentPicker,
   } = useGameStore();
 
   const [error, setError] = useState('');
@@ -31,9 +32,18 @@ export default function GameDisplay() {
     setGameCode(code);
     connectSocket();
     const socket = getSocket();
-    socket.emit('room:joinDisplay', { code });
+
+    const join = () => socket.emit('room:joinDisplay', { code });
+
+    // Присоединяемся сразу и при каждом реконнекте (сокет выходит из комнаты при разрыве)
+    socket.on('connect', join);
+    if (socket.connected) join();
+
     socket.on('room:error', ({ message }) => setError(message));
-    return () => { socket.off('room:error'); };
+    return () => {
+      socket.off('connect', join);
+      socket.off('room:error');
+    };
   }, [code]);
 
   if (error) {
@@ -183,6 +193,37 @@ export default function GameDisplay() {
               </div>
               <TourIndicator current={currentTour} total={totalTours} />
             </div>
+            {/* Кто выбирает вопрос */}
+            <AnimatePresence>
+              {currentPicker && (
+                <motion.div
+                  key={currentPicker.playerId}
+                  initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                  className="flex items-center justify-center gap-3 py-3 flex-shrink-0"
+                  style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-deep)' }}
+                >
+                  <motion.span
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 1.2, repeat: Infinity }}
+                    style={{ fontSize: '1.4rem' }}
+                  >
+                    👆
+                  </motion.span>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>
+                    Выбирает вопрос:
+                  </span>
+                  <span style={{
+                    fontSize: '1.4rem',
+                    fontWeight: 800,
+                    color: 'var(--accent-gold)',
+                    textShadow: '0 0 20px rgba(245,158,11,0.4)',
+                  }}>
+                    {currentPicker.playerName}
+                  </span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <div className="flex-1 flex items-center justify-center p-6">
               <div className="w-full max-w-5xl">
                 <GameBoard themes={boardThemes} answeredQuestions={answeredQuestions} isHost={false} />
@@ -221,7 +262,7 @@ export default function GameDisplay() {
                 initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
                 style={{
-                  fontSize: 'clamp(1.8rem, 4.5vw, 4rem)',
+                  fontSize: activeQuestion.questionType !== 'TEXT' ? 'clamp(1.4rem, 3vw, 2.5rem)' : 'clamp(1.8rem, 4.5vw, 4rem)',
                   fontWeight: 700,
                   color: 'var(--text-primary)',
                   textAlign: 'center',
@@ -233,21 +274,136 @@ export default function GameDisplay() {
                 {activeQuestion.text}
               </motion.p>
 
-              <motion.div
-                initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.2 }}
-                className="mt-10"
-              >
-                <Timer seconds={timerSeconds} total={activeQuestion.timeLimit} paused={timerPaused} size="xl" />
-              </motion.div>
+              {/* Медиа-контент (под текстом) */}
+              {activeQuestion.questionType !== 'TEXT' && activeQuestion.mediaUrl && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.15 }}
+                  className="mt-6 w-full flex justify-center"
+                  style={{ position: 'relative', zIndex: 1, maxWidth: 900 }}
+                >
+                  {activeQuestion.questionType === 'IMAGE' && (
+                    <img
+                      src={activeQuestion.mediaUrl}
+                      alt="Вопрос"
+                      style={{ maxHeight: '40vh', maxWidth: '100%', borderRadius: 16, objectFit: 'contain' }}
+                    />
+                  )}
+                  {activeQuestion.questionType === 'AUDIO' && (
+                    <div className="flex flex-col items-center gap-4 w-full">
+                      <div style={{ fontSize: '4rem' }}>🎵</div>
+                      <audio
+                        src={activeQuestion.mediaUrl}
+                        controls
+                        autoPlay
+                        style={{ width: '100%', maxWidth: 600, accentColor: 'var(--accent-blue)' }}
+                      />
+                    </div>
+                  )}
+                  {activeQuestion.questionType === 'VIDEO' && (() => {
+                    const url = activeQuestion.mediaUrl!;
+                    const isYt = /youtube\.com|youtu\.be/.test(url);
+                    const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+                    const src = isYt && match ? `https://www.youtube.com/embed/${match[1]}?autoplay=1` : url;
+                    return (
+                      <div className="w-full">
+                        {isYt ? (
+                          <iframe
+                            src={src}
+                            style={{ width: '100%', aspectRatio: '16/9', borderRadius: 16, border: 'none' }}
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        ) : (
+                          <video
+                            src={src}
+                            controls
+                            autoPlay
+                            style={{ width: '100%', aspectRatio: '16/9', borderRadius: 16, background: '#000' }}
+                          />
+                        )}
+                      </div>
+                    );
+                  })()}
+                </motion.div>
+              )}
 
+              {(activeQuestion.questionType === 'TEXT' || activeQuestion.questionType === 'IMAGE') && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="mt-8"
+                >
+                  <Timer seconds={timerSeconds} total={activeQuestion.timeLimit} paused={timerPaused} size="xl" />
+                </motion.div>
+              )}
+
+              {/* Кто отвечает — под таймером, не перекрывает */}
               <AnimatePresence>
                 {buzzWinner && (
                   <motion.div
-                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                    className="mt-8"
+                    initial={{ opacity: 0, y: 20, scale: 0.92 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 22 }}
+                    className="mt-8 flex flex-col items-center gap-3"
+                    style={{ position: 'relative', zIndex: 1 }}
                   >
-                    <BuzzWinner playerName={buzzWinner.playerName} size="lg" />
+                    <p style={{
+                      fontSize: 'clamp(0.85rem, 1.5vw, 1.1rem)',
+                      color: 'rgba(255,255,255,0.5)',
+                      fontWeight: 600,
+                      letterSpacing: '0.1em',
+                      textTransform: 'uppercase',
+                    }}>
+                      Отвечает
+                    </p>
+                    <div className="px-10 py-4 rounded-2xl flex items-center gap-4"
+                      style={{
+                        background: 'rgba(245,158,11,0.12)',
+                        border: '2px solid rgba(245,158,11,0.45)',
+                        boxShadow: '0 0 40px rgba(245,158,11,0.2)',
+                      }}>
+                      <motion.span
+                        animate={{ scale: [1, 1.2, 1] }}
+                        transition={{ duration: 0.9, repeat: Infinity }}
+                        style={{ fontSize: 'clamp(1.5rem, 2.5vw, 2rem)' }}
+                      >
+                        🔔
+                      </motion.span>
+                      <p style={{
+                        fontSize: 'clamp(1.8rem, 4vw, 3.5rem)',
+                        fontWeight: 900,
+                        color: 'var(--accent-gold)',
+                        lineHeight: 1,
+                        textShadow: '0 0 30px rgba(245,158,11,0.5)',
+                      }}>
+                        {buzzWinner.playerName}
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <AnimatePresence>
+                {lastCorrectAnswer && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 16, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="mt-8 px-10 py-6 rounded-3xl text-center"
+                    style={{
+                      background: 'rgba(16,185,129,0.12)',
+                      border: '2px solid rgba(16,185,129,0.4)',
+                      maxWidth: 700,
+                    }}
+                  >
+                    <p style={{ fontSize: '1rem', color: 'rgba(16,185,129,0.7)', fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Правильный ответ
+                    </p>
+                    <p style={{ fontSize: 'clamp(1.8rem, 4vw, 3rem)', fontWeight: 900, color: 'var(--accent-green)', lineHeight: 1.2 }}>
+                      {lastCorrectAnswer}
+                    </p>
                   </motion.div>
                 )}
               </AnimatePresence>

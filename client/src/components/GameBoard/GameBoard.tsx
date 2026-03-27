@@ -57,7 +57,7 @@ export default function GameBoard({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: 'clamp(0.65rem, 1.2vw, 0.875rem)',
+              fontSize: 'clamp(0.8rem, 1.6vw, 1.1rem)',
               color: 'var(--text-primary)',
               lineHeight: 1.2,
             }}

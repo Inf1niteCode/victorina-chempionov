@@ -1,7 +1,9 @@
 import { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
+import { useThemeStore } from './store/themeStore';
 import ProtectedRoute from './components/ProtectedRoute';
+import ThemeToggle from './components/ThemeToggle/ThemeToggle';
 import Auth from './pages/Auth';
 import JoinGame from './pages/JoinGame';
 import HostLobby from './pages/HostLobby';
@@ -10,12 +12,23 @@ import Dashboard from './pages/Dashboard';
 import GameSetup from './pages/GameSetup';
 import GameHost from './pages/GameHost';
 import GamePlayer from './pages/GamePlayer';
-import Store from './pages/Store';
 import Landing from './pages/Landing';
 import Admin from './pages/Admin';
 
+function ThemeToggleConditional() {
+  const { pathname } = useLocation();
+  if (pathname === '/display' || pathname === '/') return null;
+  return <ThemeToggle />;
+}
+
 export default function App() {
   const { setUser } = useAuthStore();
+  const { theme } = useThemeStore();
+
+  // Применяем тему на <html>
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
 
   // Слушаем событие истечения токена
   useEffect(() => {
@@ -37,7 +50,6 @@ export default function App() {
 
         {/* Защищённые */}
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/store" element={<ProtectedRoute><Store /></ProtectedRoute>} />
         <Route path="/game/setup" element={<ProtectedRoute><GameSetup /></ProtectedRoute>} />
         <Route path="/host/lobby/:code" element={<ProtectedRoute><HostLobby /></ProtectedRoute>} />
         <Route path="/host/game/:code" element={<ProtectedRoute><GameHost /></ProtectedRoute>} />
@@ -66,6 +78,7 @@ export default function App() {
           }
         />
       </Routes>
+      <ThemeToggleConditional />
     </BrowserRouter>
   );
 }

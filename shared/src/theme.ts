@@ -23,8 +23,6 @@ export interface ThemeWithAccess {
   id: string;
   name: string;
   category: ThemeCategory;
-  isFree: boolean;
-  isPurchased: boolean;
   questions?: QuestionPublic[];
 }
 
@@ -39,10 +37,3 @@ export interface QuestionFull extends QuestionPublic {
   themeId: string;
 }
 
-export interface Purchase {
-  id: string;
-  userId: string;
-  themeId: string;
-  stripeId: string;
-  createdAt: string;
-}

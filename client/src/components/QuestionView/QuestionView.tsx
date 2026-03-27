@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Timer from '../Timer/Timer';
 import BuzzWinner from '../BuzzWinner/BuzzWinner';
+import type { QuestionType } from '../../store/gameStore';
 
 interface Props {
   text: string;
@@ -12,6 +14,8 @@ interface Props {
   timerPaused: boolean;
   buzzWinner: { playerId: string; playerName: string } | null;
   showAnswer?: boolean;  // true для ведущего
+  questionType?: QuestionType;
+  mediaUrl?: string;
   // Колбэки только для ведущего
   onCorrect?: (playerId: string) => void;
   onWrong?: (playerId: string) => void;
@@ -31,10 +35,105 @@ const POINT_COLOR: Record<number, string> = {
   100: '#60A5FA', 200: '#34D399', 300: '#F59E0B', 400: '#F97316', 500: '#EF4444',
 };
 
+const TYPE_LABEL: Record<QuestionType, string> = {
+  TEXT: 'Текст',
+  IMAGE: '🖼 Картинка',
+  AUDIO: '🎵 Звук',
+  VIDEO: '🎬 Видео',
+};
+
+function MediaBlock({ questionType, mediaUrl, isHost }: {
+  questionType: QuestionType;
+  mediaUrl?: string;
+  isHost: boolean;
+}) {
+  const [audioPlaying, setAudioPlaying] = useState(false);
+
+  if (questionType === 'TEXT' || !mediaUrl) return null;
+
+  if (questionType === 'IMAGE') {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.97 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="rounded-2xl overflow-hidden mb-4 flex-shrink-0 flex justify-center"
+        style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
+      >
+        <img
+          src={mediaUrl}
+          alt="Вопрос"
+          className="max-w-full object-contain"
+          style={{ maxHeight: isHost ? 220 : 360 }}
+        />
+      </motion.div>
+    );
+  }
+
+  if (questionType === 'AUDIO') {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="rounded-2xl p-4 mb-4 flex-shrink-0 flex flex-col items-center gap-3"
+        style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
+      >
+        <div className="text-4xl">{audioPlaying ? '🔊' : '🎵'}</div>
+        <audio
+          src={mediaUrl}
+          controls
+          onPlay={() => setAudioPlaying(true)}
+          onPause={() => setAudioPlaying(false)}
+          onEnded={() => setAudioPlaying(false)}
+          style={{ width: '100%', accentColor: 'var(--accent-blue)' }}
+        />
+      </motion.div>
+    );
+  }
+
+  if (questionType === 'VIDEO') {
+    // Поддержка YouTube embed
+    const isYoutube = /youtube\.com|youtu\.be/.test(mediaUrl);
+    let embedUrl = mediaUrl;
+    if (isYoutube) {
+      const match = mediaUrl.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+      if (match) embedUrl = `https://www.youtube.com/embed/${match[1]}?autoplay=0`;
+    }
+
+    const maxH = isHost ? 260 : 360;
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="rounded-2xl overflow-hidden mb-4 flex-shrink-0"
+        style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', maxHeight: maxH }}
+      >
+        {isYoutube ? (
+          <iframe
+            src={embedUrl}
+            style={{ width: '100%', height: maxH, border: 'none' }}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        ) : (
+          <video
+            src={mediaUrl}
+            controls
+            style={{ width: '100%', height: maxH, objectFit: 'contain', background: '#000' }}
+          />
+        )}
+      </motion.div>
+    );
+  }
+
+  return null;
+}
+
 export default function QuestionView({
   text, answer, points, themeName, timeLimit,
   timerSeconds, timerPaused, buzzWinner,
   showAnswer = false,
+  questionType = 'TEXT',
+  mediaUrl,
   onCorrect, onWrong, onPause, onReset, onClose,
 }: Props) {
   const isHost = showAnswer;
@@ -53,6 +152,11 @@ export default function QuestionView({
           <span style={{ padding: '4px 14px', borderRadius: 9999, fontSize: '0.85rem', fontWeight: 700, background: pb, color: pc, border: `1px solid ${pc}40` }}>
             {points} очков
           </span>
+          {questionType !== 'TEXT' && (
+            <span style={{ padding: '4px 12px', borderRadius: 9999, fontSize: '0.75rem', fontWeight: 600, background: 'var(--bg-surface)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
+              {TYPE_LABEL[questionType]}
+            </span>
+          )}
         </div>
         {isHost && onClose && (
           <button onClick={onClose}
@@ -62,6 +166,9 @@ export default function QuestionView({
           </button>
         )}
       </div>
+
+      {/* ── Медиа-контент ── */}
+      <MediaBlock questionType={questionType} mediaUrl={mediaUrl} isHost={isHost} />
 
       {/* ── Текст вопроса ── */}
       <div className="rounded-2xl p-6 mb-4 flex-shrink-0"
@@ -138,6 +245,7 @@ export default function QuestionView({
       </AnimatePresence>
 
       {/* ── Таймер + управление (для ведущего) ── */}
+      {questionType !== 'VIDEO' && questionType !== 'AUDIO' && (
       <div className="mt-auto flex-shrink-0">
         <div className="flex items-center justify-between">
           <Timer seconds={timerSeconds} total={timeLimit} paused={timerPaused} size="lg" />
@@ -158,6 +266,7 @@ export default function QuestionView({
           )}
         </div>
       </div>
+      )}
     </div>
   );
 }

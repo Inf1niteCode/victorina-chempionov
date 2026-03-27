@@ -4,8 +4,6 @@ export interface ThemeInfo {
   id: string;
   name: string;
   category: string;
-  isFree: boolean;
-  isPurchased: boolean;
   questions: { id: string; points: number; text: string }[];
 }
 

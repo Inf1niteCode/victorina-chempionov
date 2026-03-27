@@ -21,6 +21,7 @@ export default function GamePlayer() {
     currentTour, totalTours,
     myPlayerId, myPlayerName,
     finalScores, winner,
+    currentPicker, playerOrder, lastCorrectAnswer, wasWrong,
     setHasBuzzed, setRoomError, roomError,
   } = useGameStore();
 
@@ -28,6 +29,8 @@ export default function GamePlayer() {
   const myRank = [...players]
     .sort((a, b) => b.score - a.score)
     .findIndex((p) => p.id === myPlayerId) + 1;
+  const myPlayerNumber = myPlayerId ? playerOrder.indexOf(myPlayerId) + 1 : 0;
+  const iAmPicker = currentPicker?.playerId === myPlayerId;
 
   // ── Подключение ──────────────────────────
   useEffect(() => {
@@ -37,10 +40,19 @@ export default function GamePlayer() {
     connectSocket();
     const socket = getSocket();
 
-    // Переподключаемся к комнате с нашим playerId
-    socket.emit('room:rejoinPlayer', { code, playerId: myPlayerId, playerName: myPlayerName });
+    const rejoin = () => {
+      socket.emit('room:rejoinPlayer', { code, playerId: myPlayerId, playerName: myPlayerName });
+    };
 
-    return () => {};
+    // Переподключаемся при каждом connect (первый раз + после разрыва / блокировки экрана)
+    socket.on('connect', rejoin);
+
+    // Уже подключены — эмитим сразу
+    if (socket.connected) rejoin();
+
+    return () => {
+      socket.off('connect', rejoin);
+    };
   }, [code, myPlayerId, myPlayerName]);
 
   // ── Buzz ─────────────────────────────────
@@ -66,7 +78,7 @@ export default function GamePlayer() {
 
   return (
     <div
-      className="min-h-dvh flex flex-col"
+      className="h-dvh flex flex-col overflow-hidden"
       style={{ background: 'var(--bg-deep)', maxWidth: 480, margin: '0 auto' }}
     >
       <AnimatePresence mode="wait">
@@ -173,6 +185,7 @@ export default function GamePlayer() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                    {myPlayerNumber > 0 && <span style={{ color: 'var(--accent-gold)' }}>#{myPlayerNumber} </span>}
                     {myPlayerName}
                   </p>
                   <p className="text-2xl font-bold" style={{ color: 'var(--accent-gold)' }}>
@@ -191,21 +204,56 @@ export default function GamePlayer() {
               </div>
             </div>
 
-            {/* Ожидание вопроса */}
+            {/* Информация о выборе */}
             <div className="flex-1 flex flex-col items-center justify-center px-6 gap-4">
-              <motion.div
-                animate={{ opacity: [0.4, 1, 0.4] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="text-5xl"
-              >
-                👀
-              </motion.div>
-              <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
-                Ждём следующего вопроса...
-              </p>
-              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                Ведущий выбирает тему
-              </p>
+              {currentPicker ? (
+                iAmPicker ? (
+                  <>
+                    <motion.div
+                      animate={{ scale: [1, 1.1, 1] }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                      className="text-5xl"
+                    >
+                      👆
+                    </motion.div>
+                    <p className="text-xl font-bold text-center" style={{ color: 'var(--accent-gold)' }}>
+                      Ваш ход!
+                    </p>
+                    <p className="text-sm text-center" style={{ color: 'var(--text-muted)' }}>
+                      Ведущий ждёт вашего выбора темы и стоимости
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <motion.div
+                      animate={{ opacity: [0.5, 1, 0.5] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                      className="text-5xl"
+                    >
+                      👀
+                    </motion.div>
+                    <div className="text-center">
+                      <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Выбирает вопрос</p>
+                      <p className="text-lg font-bold mt-1" style={{ color: 'var(--text-primary)' }}>
+                        #{currentPicker.playerNumber} {currentPicker.playerName}
+                      </p>
+                    </div>
+                  </>
+                )
+              ) : (
+                <>
+                  <motion.div
+                    animate={{ opacity: [0.4, 1, 0.4] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="text-5xl"
+                  >
+                    👀
+                  </motion.div>
+                  <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
+                    Ждём следующего вопроса...
+                  </p>
+                </>
+              )}
             </div>
 
             {/* Мини-рейтинг */}
@@ -253,8 +301,57 @@ export default function GamePlayer() {
                   {activeQuestion.points}
                 </span>
               </div>
-              <Timer seconds={timerSeconds} total={activeQuestion.timeLimit} paused={timerPaused} size="sm" />
+              {activeQuestion.questionType !== 'VIDEO' && activeQuestion.questionType !== 'AUDIO' && (
+                <Timer seconds={timerSeconds} total={activeQuestion.timeLimit} paused={timerPaused} size="sm" />
+              )}
             </div>
+
+            {/* Медиа-контент */}
+            {activeQuestion.questionType !== 'TEXT' && activeQuestion.mediaUrl && (
+              <div className="px-5 pt-4 flex-shrink-0">
+                {activeQuestion.questionType === 'IMAGE' && (
+                  <motion.img
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                    src={activeQuestion.mediaUrl}
+                    alt="Вопрос"
+                    className="w-full rounded-2xl object-contain"
+                    style={{ maxHeight: 220, background: 'var(--bg-surface)' }}
+                  />
+                )}
+                {activeQuestion.questionType === 'AUDIO' && (
+                  <motion.audio
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                    src={activeQuestion.mediaUrl}
+                    controls
+                    className="w-full"
+                    style={{ accentColor: 'var(--accent-blue)' }}
+                  />
+                )}
+                {activeQuestion.questionType === 'VIDEO' && (() => {
+                  const url = activeQuestion.mediaUrl!;
+                  const isYt = /youtube\.com|youtu\.be/.test(url);
+                  const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+                  const src = isYt && match ? `https://www.youtube.com/embed/${match[1]}` : url;
+                  return isYt ? (
+                    <motion.iframe
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                      src={src}
+                      className="w-full rounded-2xl"
+                      style={{ aspectRatio: '16/9', border: 'none' }}
+                      allowFullScreen
+                    />
+                  ) : (
+                    <motion.video
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                      src={src}
+                      controls
+                      className="w-full rounded-2xl"
+                      style={{ maxHeight: 200, background: '#000' }}
+                    />
+                  );
+                })()}
+              </div>
+            )}
 
             {/* Текст вопроса */}
             <div className="px-5 py-4 flex-shrink-0"
@@ -272,14 +369,36 @@ export default function GamePlayer() {
               </motion.p>
             </div>
 
+            {/* Правильный ответ после начисления очков */}
+            {lastCorrectAnswer && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+                className="mx-5 mb-2 rounded-2xl px-5 py-3 flex-shrink-0"
+                style={{
+                  background: 'rgba(16,185,129,0.12)',
+                  border: '2px solid rgba(16,185,129,0.4)',
+                }}
+              >
+                <p className="text-xs font-semibold mb-0.5 uppercase tracking-wide"
+                  style={{ color: 'rgba(16,185,129,0.7)' }}>
+                  Правильный ответ
+                </p>
+                <p className="font-bold text-lg" style={{ color: 'var(--accent-green)' }}>
+                  {lastCorrectAnswer}
+                </p>
+              </motion.div>
+            )}
+
             {/* КНОПКА — главное */}
             <div className="flex-1 flex flex-col px-5 py-4">
               <BuzzButton
+                key={activeQuestion.questionId}
                 onBuzz={handleBuzz}
                 disabled={timerSeconds === 0 || timerPaused}
                 blocked={isBuzzBlocked}
                 winner={iAmWinner}
                 winnerName={someoneElseWon ? buzzWinner?.playerName : undefined}
+                wasWrong={wasWrong}
               />
             </div>
 

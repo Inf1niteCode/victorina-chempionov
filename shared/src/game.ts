@@ -1,5 +1,6 @@
 export type GameStatus = 'LOBBY' | 'ACTIVE' | 'FINISHED';
 export type TourStatus = 'PENDING' | 'ACTIVE' | 'FINISHED';
+export type QuestionType = 'TEXT' | 'IMAGE' | 'AUDIO' | 'VIDEO';
 
 export interface Player {
   id: string;
@@ -14,6 +15,8 @@ export interface Question {
   answer: string;
   points: number;
   themeId: string;
+  questionType: QuestionType;
+  mediaUrl?: string;
 }
 
 export interface Theme {

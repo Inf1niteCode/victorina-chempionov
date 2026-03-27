@@ -1,4 +1,4 @@
-import { Player, BoardTheme } from './game';
+import { Player, BoardTheme, QuestionType } from './game';
 
 export interface ClientToServerEvents {
   'room:create': (data: RoomCreatePayload) => void;
@@ -9,6 +9,7 @@ export interface ClientToServerEvents {
   'buzz:press': (data: { code: string; playerId: string; playerName: string }) => void;
   'score:correct': (data: ScoreUpdatePayload) => void;
   'score:wrong': (data: ScoreUpdatePayload) => void;
+  'score:manual': (data: { code: string; playerId: string; delta: number }) => void;
   'timer:pause': (data: { code: string }) => void;
   'timer:reset': (data: { code: string }) => void;
   'tour:next': (data: { code: string }) => void;
@@ -20,7 +21,7 @@ export interface ClientToServerEvents {
 }
 
 export interface ServerToClientEvents {
-  'room:playerList': (data: { players: Player[] }) => void;
+  'room:playerList': (data: { players: Player[]; playerOrder?: string[] }) => void;
   'room:playerJoined': (data: { playerName: string }) => void;
   'room:error': (data: { message: string }) => void;
   'room:joined': (data: { playerId: string; playerName: string; gameStatus: string; currentTour: number; totalTours: number }) => void;
@@ -31,6 +32,8 @@ export interface ServerToClientEvents {
   'game:end': (data: GameEndPayload) => void;
   'question:open': (data: QuestionOpenBroadcast) => void;
   'question:close': (data: { questionId: string }) => void;
+  'question:picker': (data: { playerId: string; playerName: string; playerNumber: number }) => void;
+  'question:answer': (data: { answer: string; playerName: string }) => void;
   'buzz:winner': (data: { playerId: string; playerName: string }) => void;
   'buzz:blocked': () => void;
   'buzz:reset': () => void;
@@ -70,6 +73,8 @@ export interface QuestionOpenBroadcast {
   points: number;
   themeName: string;
   timeLimit: number;
+  questionType: QuestionType;
+  mediaUrl?: string;
 }
 
 export interface ScoreUpdatePayload {
