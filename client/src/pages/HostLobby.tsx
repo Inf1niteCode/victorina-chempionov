@@ -255,6 +255,54 @@ export default function HostLobby() {
             </p>
           </motion.div>
 
+          {/* Дисплей */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="rounded-2xl p-6"
+            style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>
+                  🖥️ Дисплей
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                  Откройте на втором экране
+                </p>
+              </div>
+              <a
+                href={displayUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs px-3 py-1.5 rounded-lg transition-all hover:opacity-80"
+                style={{
+                  background: 'rgba(59,130,246,0.12)',
+                  color: 'var(--accent-blue)',
+                  border: '1px solid rgba(59,130,246,0.3)',
+                  fontWeight: 600,
+                }}
+              >
+                Открыть ↗
+              </a>
+            </div>
+            <div className="flex justify-center">
+              <div className="p-3 rounded-xl bg-white inline-block">
+                <QRCodeSVG
+                  value={displayUrl}
+                  size={130}
+                  bgColor="#ffffff"
+                  fgColor="#07090F"
+                  level="M"
+                />
+              </div>
+            </div>
+            <p className="text-xs text-center mt-3 break-all" style={{ color: 'var(--text-muted)' }}>
+              {displayUrl}
+            </p>
+          </motion.div>
+
           {/* Параметры игры */}
           <motion.div
             initial={{ opacity: 0, y: 16 }}
