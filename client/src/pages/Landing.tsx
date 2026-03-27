@@ -7,13 +7,18 @@ const TYPEWRITER_PHRASES = [
   "которая запомнится",
   "для настоящих знатоков",
   "объединяет компанию",
-  "где побеждает умнейший",
   "которую ждут снова",
-  "без скуки и пауз",
-  "с кнопкой-жмалкой",
   "для любого повода",
-  "заводит с первого вопроса",
   "которую не забудут",
+  "что проверит интуицию",
+  "где каждый ответ решает",
+  "с азартом и весельем",
+  "которая сближает друзей",
+  "что превращает вечер в шоу",
+  "с вопросами на все темы",
+  "что не отпускает до финала",
+  "где мозги работают на максимум",
+  "что дарит эмоции и смех",
 ];
 
 function TypewriterText() {
@@ -25,7 +30,10 @@ function TypewriterText() {
     const phrase = TYPEWRITER_PHRASES[phraseIndex];
 
     if (!deleting && displayed.length < phrase.length) {
-      const t = setTimeout(() => setDisplayed(phrase.slice(0, displayed.length + 1)), 60);
+      const t = setTimeout(
+        () => setDisplayed(phrase.slice(0, displayed.length + 1)),
+        60,
+      );
       return () => clearTimeout(t);
     }
 
@@ -49,7 +57,8 @@ function TypewriterText() {
     <span
       style={{
         fontSize: "clamp(1.6rem, 4.5vw, 3.2rem)",
-        background: "linear-gradient(135deg, var(--accent-gold) 0%, #f97316 100%)",
+        background:
+          "linear-gradient(135deg, var(--accent-gold) 0%, #f97316 100%)",
         WebkitBackgroundClip: "text",
         WebkitTextFillColor: "transparent",
       }}
@@ -61,7 +70,9 @@ function TypewriterText() {
           opacity: 1,
           animation: "blink 1s step-start infinite",
         }}
-      >|</span>
+      >
+        |
+      </span>
       <style>{`@keyframes blink { 50% { opacity: 0 } }`}</style>
     </span>
   );
@@ -374,7 +385,14 @@ export default function Landing() {
               marginBottom: 24,
             }}
           >
-            <span style={{ color: "var(--text-primary)", fontSize: "clamp(1.6rem, 4.5vw, 3.2rem)" }}>Викторина,</span>
+            <span
+              style={{
+                color: "var(--text-primary)",
+                fontSize: "clamp(1.6rem, 4.5vw, 3.2rem)",
+              }}
+            >
+              Викторина,
+            </span>
             <br />
             <TypewriterText />
           </h1>
@@ -1123,7 +1141,8 @@ export default function Landing() {
             </Link>
             <span>© {new Date().getFullYear()}</span>
             <span style={{ color: "var(--border)" }}>·</span>
-            <span>Разработка и поддержка{" "}
+            <span>
+              Разработка и поддержка{" "}
               <a
                 href="https://t.me/Inf1niteCode"
                 target="_blank"
