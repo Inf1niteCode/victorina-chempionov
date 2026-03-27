@@ -22,9 +22,9 @@ export interface LoginData {
 }
 
 export const authApi = {
-  register: async (data: RegisterData): Promise<AuthUser> => {
-    const res = await api.post<{ user: AuthUser }>('/auth/register', data);
-    return res.data.user;
+  register: async (data: RegisterData): Promise<{ message: string; emailSent: boolean }> => {
+    const res = await api.post<{ message: string; emailSent: boolean }>('/auth/register', data);
+    return res.data;
   },
 
   login: async (data: LoginData): Promise<AuthUser> => {
@@ -52,5 +52,17 @@ export const authApi = {
     } catch {
       return false;
     }
+  },
+
+  verifyEmail: async (token: string): Promise<void> => {
+    await api.get(`/auth/verify-email?token=${token}`);
+  },
+
+  forgotPassword: async (email: string): Promise<void> => {
+    await api.post('/auth/forgot-password', { email });
+  },
+
+  resetPassword: async (token: string, password: string): Promise<void> => {
+    await api.post('/auth/reset-password', { token, password });
   },
 };

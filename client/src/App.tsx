@@ -14,6 +14,9 @@ import GameHost from './pages/GameHost';
 import GamePlayer from './pages/GamePlayer';
 import Landing from './pages/Landing';
 import Admin from './pages/Admin';
+import VerifyEmail from './pages/VerifyEmail';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 
 function ThemeToggleConditional() {
   const { pathname } = useLocation();
@@ -47,6 +50,9 @@ export default function App() {
         <Route path="/join/:code" element={<JoinGame />} />
         <Route path="/play/:code" element={<GamePlayer />} />
         <Route path="/display" element={<GameDisplay />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* Защищённые */}
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
